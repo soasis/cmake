@@ -59,7 +59,7 @@ function (check_compiler_diagnostic diagnostic)
 		else()
 			check_cxx_compiler_flag(-W${diagnostic_GCC} CXX_DIAGNOSTIC_${suffix})
 		endif()
-	endif
+	endif()
 	if (C IN_LIST enabled-languages)
 		if (MSVC)
 			check_c_compiler_flag(-w1${diagnostic_MSVC} C_DIAGNOSTIC_${suffix})

@@ -57,7 +57,7 @@ function (check_compiler_flag flag)
 		else()
 			check_cxx_compiler_flag(${flag_GCC} CXX_CHECK_FLAG_${suffix})
 		endif()
-	endif
+	endif()
 	if (C IN_LIST enabled-languages)
 		if (MSVC)
 			check_c_compiler_flag(${flag_MSVC} C_CHECK_FLAG_${suffix})
