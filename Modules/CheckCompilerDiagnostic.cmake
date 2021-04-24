@@ -69,7 +69,7 @@ function (check_compiler_diagnostic diagnostic)
 	endif()
 	string(CONCAT when $<OR:
 		$<AND:$<BOOL:${CXX_DIAGNOSTIC_${suffix}}>,$<COMPILE_LANGUAGE:CXX>>,
-		$<AND:$<BOOL:${C_DIAGNOSTIC_${suffix}}>,$<COMPILE_LANGUAGE:C>>,
+		$<AND:$<BOOL:${C_DIAGNOSTIC_${suffix}}>,$<COMPILE_LANGUAGE:C>>
 	>)
 	set(forbid_prefix $<IF:$<BOOL:${MSVC}>,-we,-Werror=>)
 	set(allow_prefix $<IF:$<BOOL:${MSVC}>,-wd,-Wno->)

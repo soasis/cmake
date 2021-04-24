@@ -28,7 +28,9 @@
 #
 # ============================================================================>
 
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.16)
+cmake_policy(VERSION 3.16)
+
 message(DEBUG "ztd.cmake Library has been included")
 
 set(CMAKE_MESSAGE_CONTEXT_SHOW YES)
@@ -44,3 +46,5 @@ set(ZTD_CMAKE_MODULES "${CMAKE_CURRENT_SOURCE_DIR}/Modules"
 	CACHE PATH "ztd.cmake Modules" FORCE)
 set(ZTD_CMAKE_PROJECT_PRELUDE "${CMAKE_CURRENT_SOURCE_DIR}/Includes/Project.cmake"
 	CACHE FILEPATH "ztd.cmake Project Prelude" FORCE)
+
+string(CONCAT ZTD_CMAKE_IS_TOP_LEVEL $<STREQUAL:${PROJECT_NAME},${CMAKE_PROJECT_NAME}>)

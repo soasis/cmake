@@ -66,26 +66,9 @@ check_compiler_flag(disable-permissive MSVC /permissive- GCC -pedantic)
 # Warning flags
 check_compiler_flag(warn-pedantic MSVC /permissive- GCC -pedantic)
 check_compiler_flag(warn-all MSVC /W4 GCC -Wall)
-check_compiler_flag(warn-all MSVC /permissive- GCC -pedantic)
 check_compiler_flag(warn-errors MSVC /WX GCC -Werror)
 check_compiler_flag(utf8-literal-encoding MSVC /execution-charset:utf-8 GCC -fexec-charset=utf-8)
 check_compiler_flag(utf8-source-encoding MSVC /source-charset:utf-8 GCC -finput-charset=utf-8)
-
-string(CONCAT --extra-constexpr-power
-	$<IF:$<BOOL:${MSVC}>,
-		/constexpr:steps2147483647,
-		$<IF:$<BOOL:${CLANG}>,
-			-fconstexpr-steps=2147483647,
-			-fconstexpr-depth=2147483647
-		>
-	>
-)
-string(CONCAT --template-debugging-mode
-	$<IF:$<BOOL:${MSVC}>,
-		,
-		$<IF:$<BOOL:${CLANG}>,
-			-ftemplate-backtrack-limit=0,
-			-ftemplate-backtrace-limit=0
-		>
-	>
-)
+check_compiler_flag(extra-constexpr-depth MSVC /constexpr:depth2147483647 GCC -fconstexpr-depth=2147483647 CLANG -fconstexpr-depth=2147483647)
+check_compiler_flag(extra-constexpr-steps MSVC /constexpr:steps2147483647 GCC -fconstexpr-ops-limit=2147483647 CLANG -fconstexpr-steps=2147483647)
+check_compiler_flag(template-debugging-mode GCC -ftemplate-backtrace-limit=0)
