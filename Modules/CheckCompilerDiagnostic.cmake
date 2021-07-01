@@ -71,14 +71,21 @@ function (check_compiler_diagnostic diagnostic)
 		$<AND:$<BOOL:${CXX_DIAGNOSTIC_${suffix}}>,$<COMPILE_LANGUAGE:CXX>>,
 		$<AND:$<BOOL:${C_DIAGNOSTIC_${suffix}}>,$<COMPILE_LANGUAGE:C>>
 	>)
+	string(CONCAT diagnostic_flag
+		$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:${diagnostic_MSVC}>
+		$<$<COMPILE_LANG_AND_ID:C,MSVC>:${diagnostic_MSVC}>
+		$<$<COMPILE_LANG_AND_ID:CXX,GNU>:${diagnostic_GCC}>
+		$<$<COMPILE_LANG_AND_ID:C,GNU>:${diagnostic_GCC}>
+		$<$<COMPILE_LANG_AND_ID:CXX,Clang,AppleClang>:${diagnostic_CLANG}>
+		$<$<COMPILE_LANG_AND_ID:C,Clang,AppleClang>:${diagnostic_CLANG}>
+	)
 	set(forbid_prefix $<IF:$<BOOL:${MSVC}>,-we,-Werror=>)
 	set(allow_prefix $<IF:$<BOOL:${MSVC}>,-wd,-Wno->)
 	set(warn_prefix $<IF:$<BOOL:${MSVC}>,-w1,-W>)
 
-	set(--forbid-${diagnostic} $<${when}:${forbid_prefix}${diagnostic}> PARENT_SCOPE)
-	set(--allow-${diagnostic} $<${when}:${allow_prefix}${diagnostic}> PARENT_SCOPE)
-	# Set these warnings to level 1 warnings, so they appear by default
-	set(--warn-${diagnostic} $<${when}:${warn_prefix}${diagnostic}> PARENT_SCOPE)
-
+	set(--forbid-${diagnostic} $<${when}:${forbid_prefix}${diagnostic_flag}> PARENT_SCOPE)
 	set(--deny-${diagnostic} ${--forbid-${diagnostic}} PARENT_SCOPE)
+	set(--allow-${diagnostic} $<${when}:${allow_prefix}${diagnostic_flag}> PARENT_SCOPE)
+	set(--warn-${diagnostic} $<${when}:${warn_prefix}${diagnostic_flag}> PARENT_SCOPE)
+
 endfunction()
