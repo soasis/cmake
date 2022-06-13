@@ -1,7 +1,7 @@
 # =============================================================================
 #
 # ztd.cmake
-# Copyright © 2021 JeanHeyd "ThePhD" Meneide and Shepherd's Oasis, LLC
+# Copyright © 2022 JeanHeyd "ThePhD" Meneide and Shepherd's Oasis, LLC
 # Contact: opensource@soasis.org
 #
 # Commercial License Usage
@@ -41,15 +41,15 @@ we check if the given flag works C++ compiler. If it is, then
 "style" of flags to be tested for.
 ]]
 function (check_compiler_flag flag_name)
-	cmake_parse_arguments(PARSE_ARGV 1 flag "" "" "GCC;MSVC;CLANG")
+	cmake_parse_arguments(PARSE_ARGV 1 flag "" "" "GCC;MSVC;Clang")
 	if (NOT flag_MSVC)
 		set(flag_MSVC /${flag_name})
 	endif()
 	if (NOT flag_GCC)
 		set(flag_GCC ${flag_name})
 	endif()
-	if (NOT flag_CLANG)
-		set(flag_CLANG ${flag_GCC})
+	if (NOT flag_Clang)
+		set(flag_Clang ${flag_GCC})
 	endif()
 	string(MAKE_C_IDENTIFIER "${flag_name}" suffix)
 	string(TOUPPER "${suffix}" suffix)
@@ -58,7 +58,7 @@ function (check_compiler_flag flag_name)
 		if (MSVC)
 			check_cxx_compiler_flag(${flag_MSVC} CXX_CHECK_FLAG_${suffix})
 		elseif (CMAKE_CXX_COMPILER_ID MATCHES Clang)
-			check_cxx_compiler_flag(${flag_CLANG} CXX_CHECK_FLAG_${suffix})
+			check_cxx_compiler_flag(${flag_Clang} CXX_CHECK_FLAG_${suffix})
 		else()
 			check_cxx_compiler_flag(${flag_GCC} CXX_CHECK_FLAG_${suffix})
 		endif()
@@ -67,7 +67,7 @@ function (check_compiler_flag flag_name)
 		if (MSVC)
 			check_c_compiler_flag(${flag_MSVC} C_CHECK_FLAG_${suffix})
 		elseif (CMAKE_C_COMPILER_ID MATCHES Clang)
-			check_c_compiler_flag(${flag_CLANG} C_CHECK_FLAG_${suffix})
+			check_c_compiler_flag(${flag_Clang} C_CHECK_FLAG_${suffix})
 		else()
 			check_c_compiler_flag(${flag_GCC} C_CHECK_FLAG_${suffix})
 		endif()
@@ -81,8 +81,8 @@ function (check_compiler_flag flag_name)
 		$<$<COMPILE_LANG_AND_ID:C,MSVC>:${flag_MSVC}>
 		$<$<COMPILE_LANG_AND_ID:CXX,GNU>:${flag_GCC}>
 		$<$<COMPILE_LANG_AND_ID:C,GNU>:${flag_GCC}>
-		$<$<COMPILE_LANG_AND_ID:CXX,Clang,AppleClang>:${flag_CLANG}>
-		$<$<COMPILE_LANG_AND_ID:C,Clang,AppleClang>:${flag_CLANG}>
+		$<$<COMPILE_LANG_AND_ID:CXX,Clang,AppleClang>:${flag_Clang}>
+		$<$<COMPILE_LANG_AND_ID:C,Clang,AppleClang>:${flag_Clang}>
 	)
 
 	set(--${flag_name} $<${when}:${compiler_flag}> PARENT_SCOPE)

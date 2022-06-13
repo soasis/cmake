@@ -1,7 +1,7 @@
 # =============================================================================
 #
 # ztd.cmake
-# Copyright © 2021 JeanHeyd "ThePhD" Meneide and Shepherd's Oasis, LLC
+# Copyright © 2022 JeanHeyd "ThePhD" Meneide and Shepherd's Oasis, LLC
 # Contact: opensource@soasis.org
 #
 # Commercial License Usage
@@ -43,28 +43,35 @@ a --warn, --allow, --deny, and --forbid prefixed set of variables. Users are
 then free to simply apply them to targets at will.
 ]]
 function (check_compiler_diagnostic diagnostic)
-	cmake_parse_arguments(diagnostic "" "GCC MSVC" "" ${ARGN})
-	if (NOT diagnostic_GCC)
-		set(diagnostic_GCC ${diagnostic})
+	cmake_parse_arguments(PARSE_ARGV 1 diagnostic_flag "" "" "GCC;MSVC;Clang")
+	if (NOT diagnostic_flag_MSVC)
+		set(diagnostic_flag_MSVC ${diagnostic})
 	endif()
-	if (NOT diagnostic_MSVC)
-		set(diagnostic_MSVC ${diagnostic})
+	if (NOT diagnostic_flag_GCC)
+		set(diagnostic_flag_GCC ${diagnostic})
+	endif()
+	if (NOT diagnostic_flag_Clang)
+		set(diagnostic_flag_Clang ${diagnostic_flag_GCC})
 	endif()
 	string(MAKE_C_IDENTIFIER "${diagnostic}" suffix)
 	string(TOUPPER "${suffix}" suffix)
 	get_property(enabled-languages GLOBAL PROPERTY ENABLED_LANGUAGES)
 	if (CXX IN_LIST enabled-languages)
 		if (MSVC)
-			check_cxx_compiler_flag(-w1${diagnostic_MSVC} CXX_DIAGNOSTIC_${suffix})
+			check_cxx_compiler_flag(-w1${diagnostic_flag_MSVC} CXX_DIAGNOSTIC_${suffix})
+		elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+			check_cxx_compiler_flag(-W${diagnostic_flag_Clang} CXX_DIAGNOSTIC_${suffix})
 		else()
-			check_cxx_compiler_flag(-W${diagnostic_GCC} CXX_DIAGNOSTIC_${suffix})
+			check_cxx_compiler_flag(-W${diagnostic_flag_GCC} CXX_DIAGNOSTIC_${suffix})
 		endif()
 	endif()
 	if (C IN_LIST enabled-languages)
 		if (MSVC)
-			check_c_compiler_flag(-w1${diagnostic_MSVC} C_DIAGNOSTIC_${suffix})
+			check_c_compiler_flag(-w1${diagnostic_flag_MSVC} C_DIAGNOSTIC_${suffix})
+		elseif(CMAKE_C_COMPILER_ID STREQUAL "Clang" OR CMAKE_C_COMPILER_ID STREQUAL "AppleClang")
+			check_c_compiler_flag(-W${diagnostic_flag_Clang} C_DIAGNOSTIC_${suffix})
 		else()
-			check_c_compiler_flag(-W${diagnostic_GCC} C_DIAGNOSTIC_${suffix})
+			check_c_compiler_flag(-W${diagnostic_flag_GCC} C_DIAGNOSTIC_${suffix})
 		endif()
 	endif()
 	string(CONCAT when $<OR:
@@ -72,12 +79,12 @@ function (check_compiler_diagnostic diagnostic)
 		$<AND:$<BOOL:${C_DIAGNOSTIC_${suffix}}>,$<COMPILE_LANGUAGE:C>>
 	>)
 	string(CONCAT diagnostic_flag
-		$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:${diagnostic_MSVC}>
-		$<$<COMPILE_LANG_AND_ID:C,MSVC>:${diagnostic_MSVC}>
-		$<$<COMPILE_LANG_AND_ID:CXX,GNU>:${diagnostic_GCC}>
-		$<$<COMPILE_LANG_AND_ID:C,GNU>:${diagnostic_GCC}>
-		$<$<COMPILE_LANG_AND_ID:CXX,Clang,AppleClang>:${diagnostic_CLANG}>
-		$<$<COMPILE_LANG_AND_ID:C,Clang,AppleClang>:${diagnostic_CLANG}>
+		$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:${diagnostic_flag_MSVC}>
+		$<$<COMPILE_LANG_AND_ID:C,MSVC>:${diagnostic_flag_MSVC}>
+		$<$<COMPILE_LANG_AND_ID:CXX,GNU>:${diagnostic_flag_GCC}>
+		$<$<COMPILE_LANG_AND_ID:C,GNU>:${diagnostic_flag_GCC}>
+		$<$<COMPILE_LANG_AND_ID:CXX,Clang,AppleClang>:${diagnostic_flag_Clang}>
+		$<$<COMPILE_LANG_AND_ID:C,Clang,AppleClang>:${diagnostic_flag_Clang}>
 	)
 	set(forbid_prefix $<IF:$<BOOL:${MSVC}>,-we,-Werror=>)
 	set(allow_prefix $<IF:$<BOOL:${MSVC}>,-wd,-Wno->)
