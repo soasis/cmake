@@ -108,6 +108,7 @@ endforeach()
 		add_custom_command(TARGET ${target} POST_BUILD
 			COMMAND ${CMAKE_COMMAND} -P ${symlink_command_script_file}
 			COMMAND_EXPAND_LISTS
+			COMMENT "[ztd.cmake] Attempting to symlink-or-copy runtime DLL dependencies to the target's directory..."
 		)
 	elseif(WIN32)
 		# We may be on Clang or something;
@@ -117,6 +118,7 @@ endforeach()
 				$<TARGET_RUNTIME_DLLS:${target}>
 				$<TARGET_FILE_DIR:${target}>
 			COMMAND_EXPAND_LISTS
+			COMMENT "[ztd.cmake] Copying runtime DLL dependencies to the target's directory..."
 		)
 	endif()
 endfunction()
