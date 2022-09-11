@@ -67,7 +67,7 @@ function (configure_graph_benchmark_targets)
 				--benchmark_out_format=json
 				--benchmark_repetitions=${ZTD_TOOLS_ARGS_REPETITIONS}
 			DEPENDS ${benchmark_target}
-			COMMENT "[ztd.tools] Executing ${benchmark_target} benchmarks and outputting to '${ZTD_TOOLS_ARGS_BENCHMARKS_RESULTS_OUTFILE}'"
+			COMMENT "[ztd.tools] Executing ${benchmark_target} benchmarks and outputting to '${result_output_file}'"
 		)
 		add_custom_target(ztd.tools.benchmark_data.${benchmark_target}
 			DEPENDS "${result_output_file}"
