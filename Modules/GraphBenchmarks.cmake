@@ -76,7 +76,7 @@ function (configure_graph_benchmark_targets)
 	endforeach()
 
 	if (Python3_Interpreter_FOUND)
-		add_custom_target(ztd.tools.benchmarks.${ZTD_TOOLS_ARGS_NAME}
+		add_custom_target(ztd.tools.graph_benchmark.${ZTD_TOOLS_ARGS_NAME}
 			COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/generate_graphs/__main__.py
 				-c ${ZTD_TOOLS_ARGS_CONFIG}
 				-i "${result_output_files}"
