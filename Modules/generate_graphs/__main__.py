@@ -89,7 +89,14 @@ def draw_graph(benchmark: visualize.benchmark):
 	 ('#1f78b4', '||'),
 	 ('#b2df8a', '**'),
 	 ('#cc33cc', '--'),
-	 ('#eeeeee', None)
+	 ('#89db59', None),
+	 ('#eeeeee', '/o'),
+	 ('#555555', '-|'),
+	 ('#eeaa00', '*+'),
+	 ('#ffff2a', 'x.'),
+	 ('#33675c', '+\\'),
+	 ('#b3c210', '\\\\'),
+	 ('#8c230e', '//')
 	]
 	#yapf: enable
 
