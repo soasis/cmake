@@ -40,36 +40,38 @@ we check if the given flag works C++ compiler. If it is, then
 --strict-conformance will be the provided flag. MSVC and GCC are the 2 different
 "style" of flags to be tested for.
 ]]
-function (check_compiler_flag flag_name)
-	cmake_parse_arguments(PARSE_ARGV 1 flag "" "" "GCC;MSVC;Clang")
-	if (NOT flag_MSVC)
-		set(flag_MSVC /${flag_name})
+function (check_compiler_flag flag)
+	cmake_parse_arguments(PARSE_ARGV 1 compiler_flag "" "" "GCC;MSVC;Clang;LANGUAGES")
+	if (NOT compiler_flag_MSVC)
+		set(compiler_flag_MSVC /${flag})
 	endif()
-	if (NOT flag_GCC)
-		set(flag_GCC ${flag_name})
+	if (NOT compiler_flag_GCC)
+		set(compiler_flag_GCC -${flag})
 	endif()
-	if (NOT flag_Clang)
-		set(flag_Clang ${flag_GCC})
+	if (NOT compiler_flag_Clang)
+		set(compiler_flag_Clang ${compiler_flag_GCC})
 	endif()
-	string(MAKE_C_IDENTIFIER "${flag_name}" suffix)
+	string(MAKE_C_IDENTIFIER "${flag}" suffix)
 	string(TOUPPER "${suffix}" suffix)
-	get_property(enabled-languages GLOBAL PROPERTY ENABLED_LANGUAGES)
-	if (CXX IN_LIST enabled-languages)
+	if (NOT compiler_flag_LANGUAGES)
+		get_property(compiler_flag_LANGUAGES GLOBAL PROPERTY ENABLED_LANGUAGES)
+	endif()
+	if (CXX IN_LIST compiler_flag_LANGUAGES)
 		if (MSVC)
-			check_cxx_compiler_flag(${flag_MSVC} CXX_CHECK_FLAG_${suffix})
+			check_cxx_compiler_flag(${compiler_flag_MSVC} CXX_CHECK_FLAG_${suffix})
 		elseif (CMAKE_CXX_COMPILER_ID MATCHES Clang)
-			check_cxx_compiler_flag(${flag_Clang} CXX_CHECK_FLAG_${suffix})
+			check_cxx_compiler_flag(${compiler_flag_Clang} CXX_CHECK_FLAG_${suffix})
 		else()
-			check_cxx_compiler_flag(${flag_GCC} CXX_CHECK_FLAG_${suffix})
+			check_cxx_compiler_flag(${compiler_flag_GCC} CXX_CHECK_FLAG_${suffix})
 		endif()
 	endif()
-	if (C IN_LIST enabled-languages)
+	if (C IN_LIST compiler_flag_LANGUAGES)
 		if (MSVC)
-			check_c_compiler_flag(${flag_MSVC} C_CHECK_FLAG_${suffix})
+			check_c_compiler_flag(${compiler_flag_MSVC} C_CHECK_FLAG_${suffix})
 		elseif (CMAKE_C_COMPILER_ID MATCHES Clang)
-			check_c_compiler_flag(${flag_Clang} C_CHECK_FLAG_${suffix})
+			check_c_compiler_flag(${compiler_flag_Clang} C_CHECK_FLAG_${suffix})
 		else()
-			check_c_compiler_flag(${flag_GCC} C_CHECK_FLAG_${suffix})
+			check_c_compiler_flag(${compiler_flag_GCC} C_CHECK_FLAG_${suffix})
 		endif()
 	endif()
 	string(CONCAT when $<OR:
@@ -77,13 +79,13 @@ function (check_compiler_flag flag_name)
 		$<AND:$<BOOL:${C_CHECK_FLAG_${suffix}}>,$<COMPILE_LANGUAGE:C>>
 	>)
 	string(CONCAT compiler_flag
-		$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:${flag_MSVC}>
-		$<$<COMPILE_LANG_AND_ID:C,MSVC>:${flag_MSVC}>
-		$<$<COMPILE_LANG_AND_ID:CXX,GNU>:${flag_GCC}>
-		$<$<COMPILE_LANG_AND_ID:C,GNU>:${flag_GCC}>
-		$<$<COMPILE_LANG_AND_ID:CXX,Clang,AppleClang>:${flag_Clang}>
-		$<$<COMPILE_LANG_AND_ID:C,Clang,AppleClang>:${flag_Clang}>
+		$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:${compiler_flag_MSVC}>
+		$<$<COMPILE_LANG_AND_ID:C,MSVC>:${compiler_flag_MSVC}>
+		$<$<COMPILE_LANG_AND_ID:CXX,GNU>:${compiler_flag_GCC}>
+		$<$<COMPILE_LANG_AND_ID:C,GNU>:${compiler_flag_GCC}>
+		$<$<COMPILE_LANG_AND_ID:CXX,Clang,AppleClang>:${compiler_flag_Clang}>
+		$<$<COMPILE_LANG_AND_ID:C,Clang,AppleClang>:${compiler_flag_Clang}>
 	)
 
-	set(--${flag_name} $<${when}:${compiler_flag}> PARENT_SCOPE)
+	set(--${flag} $<${when}:${compiler_flag}> PARENT_SCOPE)
 endfunction()
