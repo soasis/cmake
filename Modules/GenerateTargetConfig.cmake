@@ -28,23 +28,29 @@
 #
 # ============================================================================>
 
-from typing import List
-from benchmarks import source_info
+include_guard(GLOBAL)
 
-default_sources: List[source_info] = [
-	source_info(
-		"libc++.benchmarks.json",
-		"libc++",
-		False,
-	),
-	source_info(
-		"libstdc++.benchmarks.json",
-		"libstdc++",
-		False,
-	),
-	source_info(
-		"vc++.benchmarks.json",
-		"vc++",
-		False,
-	)
-]
+#[[
+Generates a manifest and a config file (windows) for a specific target. This technique just uses up to nine (9) directories and links them in as the target privateDirs for the application.
+]]
+function (generate_target_config target)
+	cmake_parse_arguments(PARSE_ARGV 1 flag "" "" "SYMLINK_SYMLINK_DEPENDENCY_DIR")
+	if (NOT flag_SYMLINK_SYMLINK_DEPENDENCY_DIR)
+		set(flag_SYMLINK_SYMLINK_DEPENDENCY_DIR "trash")
+	endif()
+
+	if (NOT WIN32)
+		return()
+	endif()
+
+	# The basic configuration file. This has to be placed next to the application/dll and must have
+	# the same name as it, plus the suffix ".manifest".
+	set(raw_basic_config [=[<?xml version="1.0"?>
+<configuration>
+	<runtime>
+		<assemblyBinding xmlns="urn:schemas-microsoft-com.asm.v1">
+			<probing privatePath="${ZTD_GCAMF_DEPENDENCY_DIR}" />
+		</assemblyBinding>
+	</runtime>
+</configuration>]=])
+endfunction()

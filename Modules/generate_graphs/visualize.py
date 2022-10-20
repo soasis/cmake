@@ -76,7 +76,14 @@ class category_info():
 		    exclude_pattern) if exclude_pattern else re.compile("x^")
 		self.scale: scaling_info = scale
 		self.order: category_order = order
-		self.description = description
+		self.description: str = description
+
+
+always_included_category = category_info(
+    "ztd.tools.always_included", scaling_info(graph_scaling.relative),
+    category_order.ascending, "", "",
+    "A universal catch-all category for data groups and names that are always included in all other categories."
+)
 
 
 class data_scale():
@@ -131,12 +138,14 @@ class data_group_info():
 	             name: str,
 	             order_index: Optional[int],
 	             pattern: str = None,
-	             description: str = ""):
+	             description: str = "",
+	             always_included: bool = False):
 		self.name = name
 		self.order_index: Optional[int] = order_index
 		self.pattern: re.Pattern[str] = re.compile(
 		    pattern) if pattern else re.compile(re.escape(name))
 		self.description: str = description if description else ""
+		self.always_included: bool = always_included
 
 
 class stats():
@@ -213,7 +222,7 @@ class data_group():
 		self.name: str = name
 		self.info: data_group_info = info
 		self.category: category_info = category
-		self.is_noop_group: bool = is_noop_category(self.category.name)
+		self.always_included: bool = self.info.always_included if self.info else False
 		self.labels: Dict[str, data_label] = labels
 		self.primary_label: str = primary_label
 		maybe_err = [

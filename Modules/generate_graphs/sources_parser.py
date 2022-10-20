@@ -75,9 +75,9 @@ def parse_sources_from_json(
 			jdescription = jcategory.get("description")
 			scale: Optional[visualize.scaling_info] = None
 			order: visualize.category_order = visualize.category_order.ascending
-			if jascending is bool and jascending:
+			if isinstance(jascending, bool) and jascending:
 				order = visualize.category_order.ascending
-			if jdescending is bool and jdescending:
+			if isinstance(jdescending, bool) and jdescending:
 				order = visualize.category_order.descending
 			if jcatscale is not None:
 				jcatscaletype = jcatscale.get("type")
@@ -124,8 +124,12 @@ def parse_sources_from_json(
 			jname = jdata_group["name"]
 			jpattern = jdata_group.get("pattern")
 			jdescription = jdata_group.get("description")
+			jalways_included = jdata_group.get("always_included")
+			always_included: bool = False
+			if isinstance(jalways_included, bool) and jalways_included:
+				always_included = True
 			dgi: visualize.data_group_info = visualize.data_group_info(
-			    jname, order_index, jpattern, jdescription)
+			    jname, order_index, jpattern, jdescription, always_included)
 			order_index = order_index + 1
 			info.data_groups.append(dgi)
 
@@ -151,15 +155,16 @@ def parse_sources_from_json(
 				info.suffixes_to_remove.append(suffix)
 
 	needs_noop: bool = True
-	for c in info.categories:
-		if visualize.is_noop_category(c.name):
+	for dg in info.data_groups:
+		if visualize.is_noop_category(dg.name):
 			needs_noop = False
 			break
 
 	if needs_noop:
-		noop_category: visualize.category_info = visualize.category_info(
-		    "noop", info.default_scale, visualize.category_order.ascending,
-		    "[Nn][Oo]([\.| |-|_])?[Oo][Pp]")
-		info.categories.append(noop_category)
+		noop_data_group: visualize.data_group_info = visualize.data_group_info(
+		    "noop", order_index, "[Nn][Oo]([\.| |-|_])?[Oo][Pp]",
+		    "Measures doing literally nothing (no written expressoins/statements in the benchmarking loop). Can be useful for determining potential environment noise.",
+		    True)
+		info.data_groups.append(noop_data_group)
 
 	return info

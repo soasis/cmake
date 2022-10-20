@@ -28,10 +28,28 @@
 #
 # ============================================================================>
 
-function (configure_graph_benchmark_targets)
+include_guard(GLOBAL)
+
+#[[
+Generates a custom commands and utility targets necessary for running the given
+benchmark executables (presumably Google Benchmark compatible), then makes them
+available as targets. Does not add them tl all.
+]]
+function (ztd_tools_add_benchmark_grapher)
+	if (NOT Python3_Interpreter_FOUND)
+		# make sure we find Python3
+		find_package(Python3 REQUIRED Interpreter)
+	endif()
+
+	set(on_off_value ALL)
 	set(one_value NAME CONFIG REPETITIONS OUTPUT_DIR)
 	set(multi_value TARGETS)
-	cmake_parse_arguments(PARSE_ARGV 0 ZTD_TOOLS_ARGS "" "${one_value}" "${multi_value}")
+	cmake_parse_arguments(PARSE_ARGV 0 ZTD_TOOLS_ARGS "${on_off_value}" "${one_value}" "${multi_value}")
+
+	set(ZTD_TOOLS_ARGS_ALL_TEXT)
+	if (ZTD_TOOLS_ARGS_ALL AND ${ZTD_TOOLS_ARGS_ALL})
+		set(ZTD_TOOLS_ARGS_ALL_TEXT ALL)
+	endif()
 
 	if (NOT ZTD_TOOLS_ARGS_REPETITIONS)
 		if (ZTD_TOOLS_BENCHMARKS_REPETITIONS)
@@ -51,7 +69,7 @@ function (configure_graph_benchmark_targets)
 	endif()
 
 	if (NOT ZTD_TOOLS_ARGS_OUTPUT_DIR)
-		set(ZTD_TOOLS_ARGS_OUTPUT_DIR ${CMAKE_BINARY_DIR}/benchmark_results)
+		set(ZTD_TOOLS_ARGS_OUTPUT_DIR ${CMAKE_BINARY_DIR}/benchmark_results/${ZTD_TOOLS_ARGS_NAME})
 	endif()
 
 	# # Commands and Targets
@@ -75,15 +93,14 @@ function (configure_graph_benchmark_targets)
 		list(APPEND result_output_targets ztd.tools.benchmark_data.${benchmark_target})
 	endforeach()
 
-	if (Python3_Interpreter_FOUND)
-		add_custom_target(ztd.tools.graph_benchmark.${ZTD_TOOLS_ARGS_NAME}
-			COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/generate_graphs/__main__.py
-				-c ${ZTD_TOOLS_ARGS_CONFIG}
-				-i "${result_output_files}"
-				-o "${ZTD_TOOLS_ARGS_OUTPUT_DIR}"
-			DEPENDS ${result_output_targets}
-			WORKING_DIRECTORY ${ZTD_TOOLS_ARGS_OUTPUT_DIR}
-			COMMENT "[ztd.tools] Graphing data to '${ZTD_TOOLS_ARGS_OUTPUT_DIR}'"
-		)
-	endif()
+	add_custom_target(ztd.tools.benchmark_grapher.${ZTD_TOOLS_ARGS_NAME}
+		${ZTD_TOOLS_ARGS_ALL_TEXT}
+		COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/generate_graphs/__main__.py
+			-c ${ZTD_TOOLS_ARGS_CONFIG}
+			-i "${result_output_files}"
+			-o "${ZTD_TOOLS_ARGS_OUTPUT_DIR}"
+		DEPENDS ${result_output_targets}
+		WORKING_DIRECTORY ${ZTD_TOOLS_ARGS_OUTPUT_DIR}
+		COMMENT "[ztd.tools] Graphing data to '${ZTD_TOOLS_ARGS_OUTPUT_DIR}'"
+	)
 endfunction()

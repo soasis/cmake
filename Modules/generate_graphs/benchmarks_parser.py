@@ -52,7 +52,7 @@ def len_sorter(x):
 
 
 def data_group_name_sorter(dg: visualize.data_group):
-	if dg.is_noop_group:
+	if dg.always_included:
 		return ""
 	if dg.error is not None:
 		return ""
@@ -89,10 +89,26 @@ def match_target(b: ParsedBenchmark, name: str) -> bool:
 	return match_category(b['category'], name)
 
 
+def trim_data_group_name(group_name: str, analysis: visualize.analysis_info,
+                         category: visualize.category_info) -> str:
+	m: Optional[re.Match] = category.pattern.search(
+	    group_name) if category else None
+	is_whole_group_name: bool = (m.start() == 0 and m.end() == len(group_name)
+	                            ) if m is not None else False
+	if m is not None and not is_whole_group_name:
+		group_name = group_name[:m.start()] + group_name[m.end():]
+	for prefix in analysis.prefixes_to_remove:
+		group_name = group_name.removeprefix(prefix)
+	for suffix in analysis.suffixes_to_remove:
+		group_name = group_name.removesuffix(suffix)
+	return group_name
+
+
 def parse_benchmark(
     b: ParsedBenchmark, category: visualize.category_info,
     analysis: visualize.analysis_info,
-    noop_benches: Optional[visualize.benchmark]) -> visualize.benchmark:
+    always_included_benches: List[Optional[visualize.benchmark]]
+) -> visualize.benchmark:
 	run_labels: List[visualize.data_group] = []
 	for run_name in b["run_names"]:
 		named_data = b["data"][run_name] if run_name in b["data"] else []
@@ -134,8 +150,9 @@ def parse_benchmark(
 		else:
 			group.error = None
 		run_labels.append(group)
-	if noop_benches != None:
-		run_labels.append(noop_benches.groups[0])
+	if always_included_benches != None and len(always_included_benches) > 0:
+		for included_bench in always_included_benches:
+			run_labels.append(included_bench.groups[0])
 	heuristics: visualize.stats = visualize.stats([])
 	heuristics.max = b["heuristics"]["max"]
 	heuristics.min = b["heuristics"]["min"]
@@ -151,21 +168,23 @@ def aggregate_categories(
 	all_benchmarks: List[visualize.benchmark] = []
 
 	# find no-op category if it exists
-	noop_benches: Optional[visualize.benchmark] = None
+	always_included_benches: List[Optional[visualize.benchmark]] = []
 	for b in all_benchmarks_data:
-		maybe_noop_category_info: visualize.category_info = b["category"]
-		if visualize.is_noop_category(maybe_noop_category_info.name):
-			noop_benches = parse_benchmark(b, maybe_noop_category_info,
-			                               analysis, None)
+		maybe_always_included_category_info: visualize.category_info = b[
+		    "category"]
+		if maybe_always_included_category_info == visualize.always_included_category:
+			always_included_benchmark = parse_benchmark(
+			    b, maybe_always_included_category_info, analysis, None)
+			always_included_benches.append(always_included_benchmark)
 			break
 
 	for b in all_benchmarks_data:
 		category_info: visualize.category_info = b["category"]
-		if visualize.is_noop_category(category_info.name):
+		if category_info == visualize.always_included_category:
 			continue
 
 		benchmark: visualize.benchmark = parse_benchmark(
-		    b, category_info, analysis, noop_benches)
+		    b, category_info, analysis, always_included_benches)
 		all_benchmarks.append(benchmark)
 
 	for benchmark in all_benchmarks:
@@ -187,21 +206,33 @@ def aggregate_categories(
 
 def parse_benchmarks_json_into(j: Any, info: visualize.analysis_info,
                                all_benchmarks: List[ParsedBenchmark]):
+	if info.categories == None:
+		raise Exception(
+		    "no categories to work with: define at least one category in the JSON config"
+		)
+
 	j_benchmarks_array = j["benchmarks"]
 	for j_benchmark in j_benchmarks_array:
 		run_name: str = j_benchmark['run_name']
 
-		if info.categories == None:
-			raise Exception(
-			    "no categories to work with: define at least one category in the JSON config"
-			)
+		for dgi in info.data_groups:
+			group_name = trim_data_group_name(dgi.name, info, None)
+			if run_name in group_name and dgi.always_included:
+				# benchmarks belong in always_included category, to be used by all
+				potential_categories = [visualize.always_included_category]
+				break
+		else:
+			potential_categories = [
+			    c for c in info.categories if match_category(c, run_name)
+			]
 
-		potential_categories = [
-		    c for c in info.categories if match_category(c, run_name)
-		]
 		if len(potential_categories) < 1:
 			raise Exception(
-			    "no categories matched the given benchmark run ({}) from the config"
+			    "could not find any category to match the given benchmark run ({}) from the config"
+			    .format(run_name))
+		elif len(potential_categories) > 1:
+			raise Exception(
+			    "more than one category matched the given benchmark run ({}) from the config"
 			    .format(run_name))
 
 		potential_categories.sort(key=category_sorter)

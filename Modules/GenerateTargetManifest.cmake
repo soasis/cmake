@@ -28,29 +28,38 @@
 #
 # ============================================================================>
 
-include_guard(DIRECTORY)
+include_guard(GLOBAL)
 
-list(PREPEND CMAKE_MODULE_PATH "${ZTD_CMAKE_PACKAGES}")
-list(PREPEND CMAKE_MODULE_PATH "${ZTD_CMAKE_MODULES}")
-list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
-list(APPEND CMAKE_MESSAGE_CONTEXT "${PROJECT_NAME}")
+#[[
+Generates a manifest and a config file (windows) for a specific target.
+]]
+function (generate_target_manifest target)
+	cmake_parse_arguments(PARSE_ARGV 1 flag "" "" "SYMLINK_DEPENDENCY_DIR")
+	if (NOT flag_SYMLINK_DEPENDENCY_DIR)
+		set(flag_SYMLINK_DEPENDENCY_DIR "trash")
+	endif()
 
-# # CMake and ztd Includes
-# CMake
-include(CheckCXXCompilerFlag)
-include(CheckCCompilerFlag)
-include(CheckIPOSupported)
-include(CMakePackageConfigHelpers)
-include(CMakeDependentOption)
-include(CMakePrintHelpers)
-include(GNUInstallDirs)
-include(FeatureSummary)
-include(FetchContent)
-include(CTest)
-# ztd
-include(BenchmarkGrapher)
-include(CheckCompilerDiagnostic)
-include(CheckCompilerFlag)
-include(FindVersion)
-include(GenerateTargetManifest)
-include(GenerateTargetConfig)
+	# This only works for Win32 at the moment
+	if (NOT WIN32)
+		return()
+	endif()
+
+	# The basic application manifest. This can be added to the sources of the target,
+	# and CMake should process it as-is.
+	set(basic_manifest [=[<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0" xmlns:asmv3="urn:schemas-microsoft-com:asm.v3">
+<asmv3:application>
+	<asmv3:windowsSettings xmlns="http://schemas.microsoft.com/SMI/2019/WindowsSettings" xmlns:ws2="http://schemas.microsoft.com/SMI/2016/WindowsSettings"> 
+		<activeCodePage>UTF-8</activeCodePage>
+		<ws2:longPathAware>true</ws2:longPathAware>
+	</asmv3:windowsSettings>
+</asmv3:application>
+</assembly>]=])
+
+	set(manifest_file ${CMAKE_CURRENT_BINARY_DIR}/ztd.tools.${target}.manifest)
+	
+	target_sources(${target} PRIVATE ${manifest_file})
+
+	file(CONFIGURE
+		OUTPUT ${manifest_file}
+		CONTENT ${basic_manifest})
+endfunction()
