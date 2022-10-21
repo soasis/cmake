@@ -76,7 +76,8 @@ class category_info():
 		    exclude_pattern) if exclude_pattern else re.compile("x^")
 		self.scale: scaling_info = scale
 		self.order: category_order = order
-		self.description: str = description
+		self.description: str = description if isinstance(description,
+		                                                  str) else ""
 
 
 always_included_category = category_info(
@@ -151,7 +152,8 @@ class data_group_info():
 class stats():
 
 	def __init__(self, data: List[float]) -> None:
-		if len(data) < 1:
+		self.data_point_count = len(data)
+		if self.data_point_count < 1:
 			self.min = 0.0
 			self.max = 0.0
 			self.stddev = 0.0

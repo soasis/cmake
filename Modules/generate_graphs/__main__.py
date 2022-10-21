@@ -29,6 +29,7 @@
 # ============================================================================>
 
 import argparse, json, os, pathlib
+from importlib.resources import path
 
 import visualize, sources_parser, benchmarks_parser
 
@@ -57,9 +58,13 @@ def hsv_value_multiply(color: numpy.ndarray, darken_factor: float):
 	return matplotlib.colors.hsv_to_rgb(color_hsv)
 
 
-def draw_graph(benchmark: visualize.benchmark):
-	# initialize figures
+def draw_graph(benchmark: visualize.benchmark) -> Tuple[str, any, any, str]:
+	# initialize figures and alt text description
 	figures, axes = matplotlib.pyplot.subplots(figsize=(12.80, 7.20))
+	description = ""
+
+	# get some basic benchmark properties
+	benchmark_name = benchmark.analysis_info.name + ' - ' + benchmark.category.name
 
 	# get the values of the time scale to perform bisecting
 	benchmark_max: float = benchmark.heuristics.max
@@ -101,9 +106,13 @@ def draw_graph(benchmark: visualize.benchmark):
 	#yapf: enable
 
 	# transpose data into forms we need
+	num_groups = len(benchmark.groups)
 	group_names = [
 	    (label.info.name if label.info and label.info.name else label.name)
 	    for label in benchmark.groups
+	]
+	data_label_names = [
+	    label.name for label in benchmark.analysis_info.data_labels
 	]
 	bars: List[Union[matplotlib.pyplot.Text,
 	                 matplotlib.container.BarContainer]] = []
@@ -117,6 +126,63 @@ def draw_graph(benchmark: visualize.benchmark):
 	    bar_padding * index_num_data_labels) + group_padding
 	quarter_bar_height = bar_height * 0.25
 	bar_y_positions: List[float] = []
+
+	# Start appending to the description
+	# title
+	description += "Title: \""
+	description += benchmark_name
+	description += "\"."
+	if benchmark.category.description and len(
+	    benchmark.category.description) > 0:
+		# optionally-provided description for the category
+		description += " Description: \""
+		description += benchmark.category.description
+		description += "\""
+	description += "\n\n"
+	description += "There {} {} group{}, and {} data label{} ({}) per each group with data.".format(
+	    "is" if num_groups == 1 else "are", num_groups,
+	    "" if num_groups == 1 else "s", num_data_labels,
+	    "" if num_data_labels == 1 else "s", ", ".join(data_label_names))
+	description += " {}.".format(
+	    "Lower is better" if lower_is_better else "Higher is better")
+	description += " \n"
+
+	# add to description first, here
+	# do the actual values of the graph next.
+	for group_index, group in enumerate(benchmark.groups):
+		ordinal_group_index = (len(benchmark.groups) - group_index -
+		                       1) if lower_is_better else group_index
+		description += "\n- {} is {}. ".format(
+		    group.name, ordinal(ordinal_group_index + 1))
+		if group.info and group.info.description and len(
+		    group.info.description) > 1:
+			description += "Described as: \""
+			description += group.info.description
+			description += "\"."
+		else:
+			description += "It has no description."
+
+		description += "\n  "
+
+		err = group.error
+		if err != None:
+			description += "This group had an error: \""
+			description += err
+			description += "\"."
+		else:
+			label: visualize.data_label = group.labels[group.primary_label]
+			label_info: visualize.data_label_info = label.info
+			statistics: visualize.stats = label.stats
+			xscale_bisect_index: int = bisect.bisect_left(
+			    label_info.format_list,
+			    benchmark_max,
+			    key=from_unit_scale_comparison)
+			xscale_index = max(xscale_bisect_index - 1, 0)
+			xscale: visualize.data_scale = label_info.format_list[
+			    xscale_index]
+			description += "Measures to a mean of \"{}\" {}, from {} multi-iteration samples.".format(
+			    statistics.mean * xscale.to_unit_scale, xscale.name,
+			    statistics.data_point_count)
 
 	# draw mean-based bars with error indicators
 	# and draw scatter-plot points
@@ -267,7 +333,6 @@ def draw_graph(benchmark: visualize.benchmark):
 	axes.set_ylabel(',\n'.join(data_label_descriptions))
 
 	# create the benchmark name
-	benchmark_name = benchmark.analysis_info.name + ' - ' + benchmark.category.name
 	axes.set_title(benchmark_name)
 	# get a nice, clean layout
 	figures.tight_layout()
@@ -275,20 +340,29 @@ def draw_graph(benchmark: visualize.benchmark):
 	# make sure to adjust top and bottoms
 	figures.subplots_adjust(bottom=0.1)
 
-	return benchmark_name, figures, axes
+	description += "\n"
+
+	return benchmark_name, figures, axes, description
 
 
 def draw_graphs(output_dir: str, benchmarks: List[visualize.benchmark]):
 	for benchmark in benchmarks:
-		file_name, figures, axes = draw_graph(benchmark)
+		file_name, figures, axes, description = draw_graph(benchmark)
 		# save drawn figures
 		output_file = os.path.join(output_dir, file_name)
-		output_file += '.png'
+		output_file += ".png"
+		description_file_name = file_name + ".txt"
+		output_description_file = output_file + ".txt"
 		print("Saving graph: {} (to '{}')".format(file_name, output_file))
 		parent_path = pathlib.Path(output_file).parent
 		os.makedirs(parent_path, exist_ok=True)
-		matplotlib.pyplot.savefig(output_file, format='png')
+		matplotlib.pyplot.savefig(output_file, format="png")
 		matplotlib.pyplot.close(figures)
+		print("Saving graph description: {} (to '{}')".format(
+		    description_file_name, output_description_file))
+		description_file = open(output_description_file, "wb")
+		description_file.write(description.encode('utf-8'))
+		description_file.close()
 
 
 def main():

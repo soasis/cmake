@@ -84,7 +84,7 @@ def parse_sources_from_json(
 				if jtype == "relative":
 					jcatscaletypeto: str = jcatscaletype.get("to")
 					scale = visualize.scaling_info(
-					    visualize.graph_scaling.relative, jcatscaletype)
+					    visualize.graph_scaling.relative, jcatscaletypeto)
 				else:
 					scale = visualize.scaling_info(
 					    visualize.graph_scaling.absolute, "")
@@ -163,7 +163,7 @@ def parse_sources_from_json(
 	if needs_noop:
 		noop_data_group: visualize.data_group_info = visualize.data_group_info(
 		    "noop", order_index, "[Nn][Oo]([\.| |-|_])?[Oo][Pp]",
-		    "Measures doing literally nothing (no written expressoins/statements in the benchmarking loop). Can be useful for determining potential environment noise.",
+		    "Measures doing literally nothing (no written expressions/statements in the benchmarking loop). Can be useful for determining potential environment noise.",
 		    True)
 		info.data_groups.append(noop_data_group)
 
