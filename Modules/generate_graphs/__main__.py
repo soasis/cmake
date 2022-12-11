@@ -342,24 +342,38 @@ def draw_graph(benchmark: visualize.benchmark) -> Tuple[str, any, any, str]:
 
 	description += "\n"
 
-	return benchmark_name, figures, axes, description
+	benchmark_file_name = benchmark_name
+	if ((isinstance(benchmark.analysis_info.file_name, str)) and
+	    (isinstance(benchmark.category.file_name, str))) and (
+	        (benchmark.analysis_info.file_name) and
+	        (benchmark.category.file_name)):
+		benchmark_file_name = benchmark.analysis_info.file_name + "_" + benchmark.category.file_name
+	elif (isinstance(benchmark.analysis_info.file_name,
+	                 str)) and (benchmark.analysis_info.file_name):
+		benchmark_file_name = benchmark.analysis_info.file_name
+	elif (isinstance(benchmark.category.file_name,
+	                 str)) and (benchmark.category.file_name):
+		benchmark_file_name = benchmark.category.file_name
+
+	return benchmark_name, benchmark_file_name, figures, axes, description
 
 
 def draw_graphs(output_dir: str, benchmarks: List[visualize.benchmark]):
 	for benchmark in benchmarks:
-		file_name, figures, axes, description = draw_graph(benchmark)
+		benchmark_name, file_name, figures, axes, description = draw_graph(
+		    benchmark)
 		# save drawn figures
 		output_file = os.path.join(output_dir, file_name)
 		output_file += ".png"
-		description_file_name = file_name + ".txt"
 		output_description_file = output_file + ".txt"
-		print("Saving graph: {} (to '{}')".format(file_name, output_file))
+		print("Saving graph '{}' to '{}'".format(benchmark_name,
+		                                         output_file))
 		parent_path = pathlib.Path(output_file).parent
 		os.makedirs(parent_path, exist_ok=True)
 		matplotlib.pyplot.savefig(output_file, format="png")
 		matplotlib.pyplot.close(figures)
-		print("Saving graph description: {} (to '{}')".format(
-		    description_file_name, output_description_file))
+		print("Saving graph description '{}' to '{}'".format(
+		    benchmark_name, output_description_file))
 		description_file = open(output_description_file, "wb")
 		description_file.write(description.encode('utf-8'))
 		description_file.close()

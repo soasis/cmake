@@ -68,7 +68,8 @@ class category_info():
 	             order: category_order,
 	             pattern: Optional[str] = None,
 	             exclude_pattern: Optional[str] = None,
-	             description: str = None) -> None:
+	             description: Optional[str] = None,
+	             file_name: Optional[str] = None) -> None:
 		self.name: str = name
 		self.pattern: re.Pattern[str] = re.compile(
 		    pattern) if pattern else re.compile(re.escape(name) + "_")
@@ -78,6 +79,8 @@ class category_info():
 		self.order: category_order = order
 		self.description: str = description if isinstance(description,
 		                                                  str) else ""
+		self.file_name: Optional[str] = file_name if isinstance(
+		    file_name, str) else None
 
 
 always_included_category = category_info(
@@ -164,12 +167,18 @@ class stats():
 		else:
 			self.min = min(data)
 			self.max = max(data)
-			self.mean = statistics.mean(data)
-			self.stddev = statistics.stdev(data, self.mean)
-			self.median = statistics.median(data)
-			self.mode = statistics.mode(data)
+			if self.data_point_count == 1:
+				self.mean = data[0]
+				self.stddev = 0
+				self.median = self.mean
+				self.mode = self.mean
+			else:
+				self.mean = statistics.mean(data)
+				self.stddev = statistics.stdev(data, self.mean)
+				self.median = statistics.median(data)
+				self.mode = statistics.mode(data)
 			self.index_of_dispersion = 0
-			if (self.mean != 0):
+			if self.mean != 0 and self.data_point_count > 1:
 				self.index_of_dispersion = statistics.variance(
 				    data) / self.mean
 
@@ -198,6 +207,7 @@ class analysis_info():
 		self.prefixes_to_remove: List[str] = []
 		self.suffixes_to_remove: List[str] = []
 		self.at_least_one_required: bool = True
+		self.file_name: Optional[str] = None
 
 
 class data_label():

@@ -49,6 +49,9 @@ def parse_sources_from_json(
 		info.sources.append(src_info)
 
 	jtoplevelname = j.get("name")
+	jtoplevelfile_name = j.get("file_name")
+	if isinstance(jtoplevelname, str):
+		info.file_name = jtoplevelfile_name
 	if isinstance(jtoplevelname, str):
 		info.name = jtoplevelname
 	else:
@@ -67,6 +70,7 @@ def parse_sources_from_json(
 	if jcategories:
 		for jcategory in jcategories:
 			name = jcategory["name"]
+			jfilename: Optional[str] = jcategory.get("file_name")
 			jcatscale = jcategory.get("scale")
 			jcatpattern: Optional[str] = jcategory.get("pattern")
 			jcatexclude: Optional[str] = jcategory.get("exclude")
@@ -91,7 +95,8 @@ def parse_sources_from_json(
 			else:
 				scale = info.default_scale
 			cat_info: visualize.category_info = visualize.category_info(
-			    name, scale, order, jcatpattern, jcatexclude, jdescription)
+			    name, scale, order, jcatpattern, jcatexclude, jdescription,
+			    jfilename)
 			info.categories.append(cat_info)
 
 	jdata_labels = j.get("data_labels")
