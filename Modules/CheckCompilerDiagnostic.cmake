@@ -88,9 +88,27 @@ function (check_compiler_diagnostic diagnostic)
 		$<$<COMPILE_LANG_AND_ID:CXX,Clang,AppleClang>:${diagnostic_flag_Clang}>
 		$<$<COMPILE_LANG_AND_ID:C,Clang,AppleClang>:${diagnostic_flag_Clang}>
 	)
-	set(forbid_prefix $<IF:$<BOOL:${MSVC}>,-we,-Werror=>)
-	set(allow_prefix $<IF:$<BOOL:${MSVC}>,-wd,-Wno->)
-	set(warn_prefix $<IF:$<BOOL:${MSVC}>,-w1,-W>)
+	string(CONCAT forbid_prefix
+		$<IF:
+			$<OR:$<C_COMPILER_ID:MSVC>,$<CXX_COMPILER_ID:MSVC>>,
+			-we,
+			-Werror=
+		>
+	)
+	string(CONCAT allow_prefix
+		$<IF:
+			$<OR:$<C_COMPILER_ID:MSVC>,$<CXX_COMPILER_ID:MSVC>>,
+			-wd,
+			-Wno-
+		>
+	)
+	string(CONCAT warn_prefix
+		$<IF:
+			$<OR:$<C_COMPILER_ID:MSVC>,$<CXX_COMPILER_ID:MSVC>>,
+			-w1,
+			-W
+		>
+	)
 
 	set(--forbid-${diagnostic} $<${when}:${forbid_prefix}${diagnostic_flag}> PARENT_SCOPE)
 	set(--deny-${diagnostic} ${--forbid-${diagnostic}} PARENT_SCOPE)
