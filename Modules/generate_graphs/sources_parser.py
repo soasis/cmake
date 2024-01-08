@@ -50,6 +50,9 @@ def parse_sources_from_json(
 
 	jtoplevelname = j.get("name")
 	jtoplevelfile_name = j.get("file_name")
+	jtopleveldiscard_unmatched_runs = j.get("discard_unmatched_runs")
+	if isinstance(jtopleveldiscard_unmatched_runs, bool):
+		info.discard_unmatched_runs = jtopleveldiscard_unmatched_runs
 	if isinstance(jtoplevelname, str):
 		info.file_name = jtoplevelfile_name
 	if isinstance(jtoplevelname, str):

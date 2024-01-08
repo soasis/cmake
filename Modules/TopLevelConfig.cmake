@@ -28,30 +28,26 @@
 #
 # ============================================================================>
 
-include_guard(DIRECTORY)
+include_guard(GLOBAL)
 
-list(PREPEND CMAKE_MODULE_PATH "${ZTD_CMAKE_PACKAGES}")
-list(PREPEND CMAKE_MODULE_PATH "${ZTD_CMAKE_MODULES}")
-list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
-list(APPEND CMAKE_MESSAGE_CONTEXT "${PROJECT_NAME}")
-
-# # CMake and ztd Includes
-# CMake
-include(CheckCXXCompilerFlag)
-include(CheckCCompilerFlag)
-include(CheckIPOSupported)
-include(CMakePackageConfigHelpers)
-include(CMakeDependentOption)
-include(CMakePrintHelpers)
-include(GNUInstallDirs)
-include(FeatureSummary)
-include(FetchContent)
-include(CTest)
-# ztd
-include(BenchmarkGrapher)
-include(CheckCompilerDiagnostic)
-include(CheckCompilerFlag)
-include(FindVersion)
-include(GenerateTargetManifest)
-include(GenerateTargetConfig)
-include(TopLevelConfig)
+#[[
+Performs basic, convenient top-level project configurations, such as sensible unified output directories,
+better object path maximums, and more. Not required, but suggested for local development and CI.s
+]]
+function(ztd_tools_top_level_project_config)
+	# sensible output directories that don't clobber anything and everything
+	set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_SYSTEM_PROCESSOR}/${CMAKE_BUILD_TYPE}/lib" PARENT_SCOPE)
+	set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_SYSTEM_PROCESSOR}/${CMAKE_BUILD_TYPE}/bin" PARENT_SCOPE)
+	set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_SYSTEM_PROCESSOR}/${CMAKE_BUILD_TYPE}/bin" PARENT_SCOPE)
+	# make sure out object file names aren't piss-garbage
+	if (NOT CMAKE_OBJECT_PATH_MAX OR CMAKE_OBJECT_PATH_MAX LESS_EQUAL "1024")
+		set(CMAKE_OBJECT_PATH_MAX 1024 PARENT_SCOPE)
+	endif()
+	# remove crappy warning flags that get hard-coded by lower versions of CMake
+	if (MSVC)
+		string(REGEX REPLACE "/W[0-4]" "" CMAKE_C_FLAGS ${CMAKE_C_FLAGS})
+		set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} PARENT_SCOPE)
+		string(REGEX REPLACE "/W[0-4]" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+		set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} PARENT_SCOPE)
+	endif()
+endfunction()

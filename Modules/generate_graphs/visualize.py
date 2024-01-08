@@ -208,6 +208,7 @@ class analysis_info():
 		self.suffixes_to_remove: List[str] = []
 		self.at_least_one_required: bool = True
 		self.file_name: Optional[str] = None
+		self.discard_unmatched_runs = True
 
 
 class data_label():

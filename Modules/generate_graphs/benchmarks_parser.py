@@ -111,21 +111,7 @@ def parse_benchmark(
 ) -> visualize.benchmark:
 	run_labels: List[visualize.data_group] = []
 	for run_name in b["run_names"]:
-		named_data = b["data"][run_name] if run_name in b["data"] else []
-		run_label: Dict[str, visualize.data_label] = {}
-		maybe_primary_group_labels = [
-		    dli for dli in analysis.data_labels if dli.primary
-		]
-		primary_label_info: visualize.data_label_info = maybe_primary_group_labels[
-		    0] if len(
-		        maybe_primary_group_labels) > 0 else analysis.data_labels[0]
-		primary_label_id: str = primary_label_info.id
-		for data_id in named_data:
-			data_info = [
-			    dli for dli in analysis.data_labels if dli.id == data_id
-			][0]
-			run_label[data_id] = visualize.data_label(
-			    data_id, analysis, data_info, named_data[data_id])
+		# group name dynamics
 		group_name: str = run_name
 		m: re.Match = category.pattern.search(group_name)
 		is_whole_group_name: bool = (
@@ -142,6 +128,29 @@ def parse_benchmark(
 		]
 		group_info = potential_group_infos[0] if len(
 		    potential_group_infos) > 0 else None
+		# if this group is unmatched, and this option is on from the config,
+		# then we do not want to see it at all; ignore this rung
+		if analysis.discard_unmatched_runs and group_info == None:
+			continue
+		
+		# pull out data names
+		named_data = b["data"][run_name] if run_name in b["data"] else []
+		run_label: Dict[str, visualize.data_label] = {}
+		maybe_primary_group_labels = [
+		    dli for dli in analysis.data_labels if dli.primary
+		]
+		primary_label_info: visualize.data_label_info = maybe_primary_group_labels[
+		    0] if len(
+		        maybe_primary_group_labels) > 0 else analysis.data_labels[0]
+		primary_label_id: str = primary_label_info.id
+		for data_id in named_data:
+			data_info = [
+			    dli for dli in analysis.data_labels if dli.id == data_id
+			][0]
+			run_label[data_id] = visualize.data_label(
+			    data_id, analysis, data_info, named_data[data_id])
+		
+		# create the group and get ready to throw it into the benchmarks
 		group = visualize.data_group(group_name, category, run_label,
 		                             primary_label_id, group_info)
 		if run_name in b["error"]:

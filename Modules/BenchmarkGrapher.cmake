@@ -43,8 +43,18 @@ function (ztd_tools_add_benchmark_grapher)
 
 	set(on_off_value ALL)
 	set(one_value NAME CONFIG REPETITIONS OUTPUT_DIR)
-	set(multi_value TARGETS)
+	set(multi_value NAMES TARGETS CONFIGS OUTPUT_DIRS)
 	cmake_parse_arguments(PARSE_ARGV 0 ZTD_TOOLS_ARGS "${on_off_value}" "${one_value}" "${multi_value}")
+
+	if (ZTD_TEXT_TOOLS_ARGS_NAME AND ZTD_TEXT_TOOLS_ARGS_NAMES)
+		message(FATAL "[ztd.tools] Either a single NAME or multiple entries in NAMES shall be specified, but not both")
+	endif()
+	if (ZTD_TEXT_TOOLS_ARGS_CONFIG AND ZTD_TEXT_TOOLS_ARGS_CONFIGS)
+		message(FATAL "[ztd.tools] Either a single CONFIG or multiple entries in CONFIGS shall be specified, but not both")
+	endif()
+	if (ZTD_TEXT_TOOLS_ARGS_OUTPUT_DIR AND ZTD_TEXT_TOOLS_ARGS_OUTPUT_DIRS)
+		message(FATAL "[ztd.tools] Either a single OUTPUT_DIR or multiple entries in OUTPUT_DIRS shall be specified, but not both")
+	endif()
 
 	set(ZTD_TOOLS_ARGS_ALL_TEXT)
 	if (ZTD_TOOLS_ARGS_ALL AND ${ZTD_TOOLS_ARGS_ALL})
@@ -58,25 +68,46 @@ function (ztd_tools_add_benchmark_grapher)
 			set(ZTD_TOOLS_ARGS_REPETITIONS 50)
 		endif()
 	endif()
-	if (NOT ZTD_TOOLS_ARGS_NAME)
-		cmake_path(RELATIVE_PATH CMAKE_CURRENT_BINARY_DIR
-			BASE_DIRECTORY ${CMAKE_BINARY_DIR}
-			OUTPUT_VARIABLE relative_binary_dir)
-		string(REPLACE "/" "." ZTD_TOOLS_ARGS_NAME ${relative_binary_dir})
+	if (NOT ZTD_TOOLS_ARGS_NAMES)
+		if (ZTD_TOOLS_ARGS_NAME)
+			set(ZTD_TOOLS_ARGS_NAMES ${ZTD_TOOLS_ARGS_NAME})
+		else()
+			cmake_path(RELATIVE_PATH CMAKE_CURRENT_BINARY_DIR
+				BASE_DIRECTORY ${CMAKE_BINARY_DIR}
+				OUTPUT_VARIABLE relative_binary_dir)
+			string(REPLACE "/" "." ZTD_TOOLS_ARGS_NAMES ${relative_binary_dir})
+		endif()
 	endif()
-	if (NOT ZTD_TOOLS_ARGS_CONFIG)
-		set(ZTD_TOOLS_ARGS_CONFIG ${CMAKE_CURRENT_SOURCE_DIR}/graph_config.json)
+	if (NOT ZTD_TOOLS_ARGS_CONFIGS)
+		if (ZTD_TOOLS_ARGS_CONFIG)
+			set(ZTD_TOOLS_ARGS_CONFIGS ${ZTD_TOOLS_ARGS_CONFIG})
+		else()
+			set(ZTD_TOOLS_ARGS_CONFIGS ${CMAKE_CURRENT_SOURCE_DIR}/graph_config.json)
+		endif()
 	endif()
 
-	if (NOT ZTD_TOOLS_ARGS_OUTPUT_DIR)
-		set(ZTD_TOOLS_ARGS_OUTPUT_DIR ${CMAKE_BINARY_DIR}/benchmark_results/${ZTD_TOOLS_ARGS_NAME})
+	if (NOT ZTD_TOOLS_ARGS_OUTPUT_DIRS)
+		if (ZTD_TOOLS_ARGS_OUTPUT_DIR)
+			set(ZTD_TOOLS_ARGS_OUTPUT_DIRS ${ZTD_TOOLS_ARGS_OUTPUT_DIR})
+		else()
+			list(GET ZTD_TOOLS_ARGS_NAMES 0 ZTD_TOOLS_FIRST_NAME)
+			set(ZTD_TOOLS_ARGS_OUTPUT_DIRS ${CMAKE_BINARY_DIR}/benchmark_results/${CMAKE_SYSTEM_PROCESSOR}/${CMAKE_BUILD_TYPE}/${ZTD_TOOLS_FIRST_NAME})
+		endif()
+	endif()
+
+	list(LENGTH ZTD_TOOLS_ARGS_CONFIGS configs_size)
+	list(LENGTH ZTD_TOOLS_ARGS_NAMES names_size)
+	if (NOT configs_size EQUAL names_size)
+		message(FATAL "[ztd.tools] An equal number of names and configs must be passed in the NAMES and CONFIGS arguments")
 	endif()
 
 	# # Commands and Targets
 	set(result_output_files)
 	set(result_output_targets)
-	foreach (benchmark_target ${ZTD_TOOLS_ARGS_TARGETS})
-		set(result_output_file ${ZTD_TOOLS_ARGS_OUTPUT_DIR}/${benchmark_target}.json)
+	foreach (benchmark_target IN LISTS ZTD_TOOLS_ARGS_TARGETS)
+		set(result_output_dir ${CMAKE_BINARY_DIR}/benchmark_results/${CMAKE_SYSTEM_PROCESSOR}/${CMAKE_BUILD_TYPE})
+		file(MAKE_DIRECTORY ${result_output_dir})
+		set(result_output_file ${result_output_dir}/${benchmark_target}.json)
 		list(APPEND result_output_files ${result_output_file})
 		add_custom_command(
 			OUTPUT "${result_output_file}"
@@ -93,14 +124,22 @@ function (ztd_tools_add_benchmark_grapher)
 		list(APPEND result_output_targets ztd.tools.benchmark_data.${benchmark_target})
 	endforeach()
 
-	add_custom_target(ztd.tools.benchmark_grapher.${ZTD_TOOLS_ARGS_NAME}
-		${ZTD_TOOLS_ARGS_ALL_TEXT}
-		COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/generate_graphs/__main__.py
-			-c ${ZTD_TOOLS_ARGS_CONFIG}
-			-i "${result_output_files}"
-			-o "${ZTD_TOOLS_ARGS_OUTPUT_DIR}"
-		DEPENDS ${result_output_targets}
-		WORKING_DIRECTORY ${ZTD_TOOLS_ARGS_OUTPUT_DIR}
-		COMMENT "[ztd.tools] Graphing data to '${ZTD_TOOLS_ARGS_OUTPUT_DIR}'"
-	)
+	foreach(graph_name graph_config graph_output_dir
+		IN ZIP_LISTS
+		ZTD_TOOLS_ARGS_NAMES ZTD_TOOLS_ARGS_CONFIGS ZTD_TOOLS_ARGS_OUTPUT_DIRS)
+		if (NOT graph_output_dir)
+			set(graph_output_dir ${CMAKE_BINARY_DIR}/benchmark_results/${CMAKE_SYSTEM_PROCESSOR}/${CMAKE_BUILD_TYPE}/${graph_name})
+		endif()
+		file(MAKE_DIRECTORY ${graph_output_dir})
+		add_custom_target(ztd.tools.benchmark_grapher.${graph_name}
+			${ZTD_TOOLS_ARGS_ALL_TEXT}
+			COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/generate_graphs/__main__.py
+				-c ${graph_config}
+				-i "${result_output_files}"
+				-o "${graph_output_dir}"
+			DEPENDS ${result_output_targets} ${graph_config}
+			WORKING_DIRECTORY ${graph_output_dir}
+			COMMENT "[ztd.tools] Graphing data to '${graph_output_dir}'"
+		)
+	endforeach()
 endfunction()
