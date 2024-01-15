@@ -132,7 +132,7 @@ def parse_benchmark(
 		# then we do not want to see it at all; ignore this rung
 		if analysis.discard_unmatched_runs and group_info == None:
 			continue
-		
+
 		# pull out data names
 		named_data = b["data"][run_name] if run_name in b["data"] else []
 		run_label: Dict[str, visualize.data_label] = {}
@@ -149,7 +149,7 @@ def parse_benchmark(
 			][0]
 			run_label[data_id] = visualize.data_label(
 			    data_id, analysis, data_info, named_data[data_id])
-		
+
 		# create the group and get ready to throw it into the benchmarks
 		group = visualize.data_group(group_name, category, run_label,
 		                             primary_label_id, group_info)
@@ -165,6 +165,16 @@ def parse_benchmark(
 	heuristics: visualize.stats = visualize.stats([])
 	heuristics.max = b["heuristics"]["max"]
 	heuristics.min = b["heuristics"]["min"]
+	for run_label in run_labels:
+		for _, data_label in run_label.labels.items():
+			heuristics.mean = max(data_label.stats.mean, heuristics.mean)
+			heuristics.stddev = max(data_label.stats.stddev,
+			                        heuristics.stddev)
+			heuristics.mode = max(data_label.stats.mode, heuristics.mode)
+			heuristics.median = max(data_label.stats.median,
+			                        heuristics.median)
+			heuristics.data_point_count = heuristics.data_point_count + len(
+			    data_label.data)
 	benchmark: visualize.benchmark = visualize.benchmark(
 	    category, analysis, run_labels, heuristics)
 	return benchmark
@@ -266,7 +276,7 @@ def parse_benchmarks_json_into(j: Any, info: visualize.analysis_info,
 			    "statistics": {},
 			    "heuristics": {
 			        "max": sys.float_info.min,
-			        "min": sys.float_info.max
+			        "min": sys.float_info.max,
 			    }
 			})
 			potential_targets = [all_benchmarks[-1]]

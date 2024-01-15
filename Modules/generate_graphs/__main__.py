@@ -67,11 +67,20 @@ def draw_graph(benchmark: visualize.benchmark) -> Tuple[str, any, any, str]:
 	benchmark_name = benchmark.analysis_info.name + ' - ' + benchmark.category.name
 
 	# get the values of the time scale to perform bisecting
+	# and to perform heuristic sizing
 	benchmark_max: float = benchmark.heuristics.max
 	benchmark_min: float = benchmark.heuristics.min
+	benchmark_highest_mean: float = benchmark.heuristics.mean
+	benchmark_highest_stddev: float = benchmark.heuristics.stddev
 	absolute_range: float = benchmark_max - benchmark_min
 	lower_is_better: bool = (
 	    benchmark.category.order == visualize.category_order.ascending)
+
+	# The highest we should go for the graph's x-axis, and the
+	# number of subdivisions for tick markers for x-axis
+	xlimit: float = benchmark_highest_mean + (benchmark_highest_stddev *
+	                                          5.50) + (absolute_range * 0.01)
+	xlimit_subdivisions: float = 10.0
 
 	# some pattern constants, to help us be pretty
 	# some color constants, to help us be pretty!
@@ -225,7 +234,8 @@ def draw_graph(benchmark: visualize.benchmark) -> Tuple[str, any, any, str]:
 				edge_color = hsv_value_multiply(
 				    label_edge_colors[label_index], 0.2)
 				bars.append(
-				    axes.text(absolute_range * 0.02,
+				    axes.text(min(absolute_range * 0.02,
+				                  xlimit / (xlimit_subdivisions * 5)),
 				              bar_y + (quarter_bar_height * 2),
 				              err,
 				              color=edge_color,
@@ -295,12 +305,8 @@ def draw_graph(benchmark: visualize.benchmark) -> Tuple[str, any, any, str]:
 			return '{0:.0f}'.format(value * xscale.to_unit_scale)
 		return '{0:.1f}'.format(value * xscale.to_unit_scale)
 
-	xlimit: float = benchmark_max + (absolute_range * 0.15)
-	adjusted_xlimit = xlimit * xscale.to_unit_scale
-	adjusted_xlimit = round(adjusted_xlimit)
-	adjusted_xlimit *= xscale.from_unit_scale
 	axes.set_xlim(left=0, right=xlimit)
-	axes.set_xticks(numpy.arange(0, xlimit, xlimit / 10.0))
+	axes.set_xticks(numpy.arange(0, xlimit, xlimit / xlimit_subdivisions))
 	axes.xaxis.set_major_formatter(
 	    matplotlib.ticker.FuncFormatter(time_axis_formatting))
 
@@ -326,6 +332,8 @@ def draw_graph(benchmark: visualize.benchmark) -> Tuple[str, any, any, str]:
 	# we have to say what each graph part means
 	is_better_text = 'lower is better' if lower_is_better else 'higher is better'
 	data_label_descriptions: List[str] = [
+	    benchmark.analysis_info.data_labels[0].name
+	] if len(benchmark.analysis_info.data_labels) < 2 else [
 	    ordinal(label_index + 1) + " is " + label_info.name for label_index,
 	    label_info in enumerate(benchmark.analysis_info.data_labels[::-1])
 	]
