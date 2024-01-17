@@ -39,7 +39,7 @@ import matplotlib.container, matplotlib.collections
 import numpy, math
 import random, bisect
 
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Optional
 
 
 def ordinal(value) -> str:
@@ -173,25 +173,32 @@ def draw_graph(benchmark: visualize.benchmark) -> Tuple[str, any, any, str]:
 
 		description += "\n  "
 
+		primary_label: Optional[visualize.data_label] = None
+		primary_label_info: Optional[visualize.data_label_info] = None
+		primary_xscale_bisect_index: Optional[int] = None
+		primary_xscale_index: Optional[int] = None
+		primary_xscale: Optional[visualize.data_scale] = None
+
 		err = group.error
 		if err != None:
 			description += "This group had an error: \""
 			description += err
 			description += "\"."
 		else:
-			label: visualize.data_label = group.labels[group.primary_label]
-			label_info: visualize.data_label_info = label.info
-			statistics: visualize.stats = label.stats
-			xscale_bisect_index: int = bisect.bisect_left(
-			    label_info.format_list,
+			primary_label = group.labels[group.primary_label]
+			primary_label_info = primary_label.info
+			# Get the scaling we are going to sue for this benchmark
+			primary_xscale_bisect_index = bisect.bisect_left(
+			    primary_label_info.format_list,
 			    benchmark_max,
 			    key=from_unit_scale_comparison)
-			xscale_index = max(xscale_bisect_index - 1, 0)
-			xscale: visualize.data_scale = label_info.format_list[
-			    xscale_index]
+			primary_xscale_index = max(primary_xscale_bisect_index - 1, 0)
+			primary_xscale = primary_label_info.format_list[
+			    primary_xscale_index]
+			statistics: visualize.stats = primary_label.stats
 			description += "Measures to a mean of \"{}\" {}, from {} multi-iteration samples.".format(
-			    statistics.mean * xscale.to_unit_scale, xscale.name,
-			    statistics.data_point_count)
+			    statistics.mean * primary_xscale.to_unit_scale,
+			    primary_xscale.name, statistics.data_point_count)
 
 	# draw mean-based bars with error indicators
 	# and draw scatter-plot points
@@ -247,7 +254,6 @@ def draw_graph(benchmark: visualize.benchmark) -> Tuple[str, any, any, str]:
 
 		for label_index, label_name in enumerate(group.labels):
 			label: visualize.data_label = group.labels[label_name]
-			label_info: visualize.data_label_info = label.info
 			statistics: visualize.stats = label.stats
 			bar_color = label_bar_colors[label_index]
 			edge_color = label_edge_colors[label_index]
@@ -258,6 +264,9 @@ def draw_graph(benchmark: visualize.benchmark) -> Tuple[str, any, any, str]:
 
 			mean = statistics.mean
 			stddev = statistics.stddev
+			adjusted_mean = mean * primary_xscale.to_unit_scale
+			adjusted_stddev = stddev * primary_xscale.to_unit_scale
+			# plot the actual bar graph
 			bar: matplotlib.container.BarContainer = axes.barh(
 			    bar_y,
 			    mean,
@@ -275,6 +284,11 @@ def draw_graph(benchmark: visualize.benchmark) -> Tuple[str, any, any, str]:
 			    },
 			    alpha=0.82)
 			bars.append(bar)
+			# add a label showing the actual number at the top of the graph, near the stddev
+			# Add labels for mean value plus stddev
+			#axes.bar_label(bar,
+			#               fmt=f'{adjusted_mean:g} ± {adjusted_stddev:g}',
+			#               padding=10)
 			# the scatter plot should be semi-transparent in color...
 			xscatter = label.data
 			xscatter_len = len(xscatter)
@@ -293,17 +307,12 @@ def draw_graph(benchmark: visualize.benchmark) -> Tuple[str, any, any, str]:
 			    alpha=scatter_alpha)
 			scatters.append(scatter)
 
-	xscale_bisect_index: int = bisect.bisect_left(
-	    label_info.format_list, benchmark_max, key=from_unit_scale_comparison)
-	xscale_index = max(xscale_bisect_index - 1, 0)
-	xscale: visualize.data_scale = label_info.format_list[xscale_index]
-
 	def time_axis_formatting(value: float, _: int):
 		if value == 0:
 			return '0'
 		if value.is_integer():
-			return '{0:.0f}'.format(value * xscale.to_unit_scale)
-		return '{0:.1f}'.format(value * xscale.to_unit_scale)
+			return '{0:.0f}'.format(value * primary_xscale.to_unit_scale)
+		return '{0:.1f}'.format(value * primary_xscale.to_unit_scale)
 
 	axes.set_xlim(left=0, right=xlimit)
 	axes.set_xticks(numpy.arange(0, xlimit, xlimit / xlimit_subdivisions))
@@ -337,7 +346,8 @@ def draw_graph(benchmark: visualize.benchmark) -> Tuple[str, any, any, str]:
 	    ordinal(label_index + 1) + " is " + label_info.name for label_index,
 	    label_info in enumerate(benchmark.analysis_info.data_labels[::-1])
 	]
-	axes.set_xlabel('measured in ' + xscale.name + ' - ' + is_better_text)
+	axes.set_xlabel('measured in ' + primary_xscale.name + ' - ' +
+	                is_better_text)
 	axes.set_ylabel(',\n'.join(data_label_descriptions))
 
 	# create the benchmark name
