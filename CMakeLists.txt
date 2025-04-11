@@ -28,9 +28,12 @@
 #
 # ============================================================================>
 
-cmake_minimum_required(VERSION 3.28.0)
+cmake_minimum_required(VERSION 3.31.0)
 
 message(DEBUG "ztd.cmake Library has been included")
+
+# Variables for additional CMake Actions
+option(ZTD_CMAKE_APPLE_GCC_TOOLCHAIN "Whether or not to automatically include the Apple GCC Toolchain File" OFF)
 
 set(CMAKE_MESSAGE_CONTEXT_SHOW YES)
 set(CMAKE_MESSAGE_CONTEXT ztd.cmake)

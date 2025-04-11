@@ -43,6 +43,9 @@ function(ztd_tools_top_level_project_config)
 	if (NOT CMAKE_OBJECT_PATH_MAX OR CMAKE_OBJECT_PATH_MAX LESS_EQUAL "1024")
 		set(CMAKE_OBJECT_PATH_MAX 1024 PARENT_SCOPE)
 	endif()
+	# Set context messaging
+	set(CMAKE_MESSAGE_CONTEXT_SHOW YES PARENT_SCOPE)
+	set(CMAKE_MESSAGE_CONTEXT ${PROJECT_NAME} PARENT_SCOPE)
 	# remove crappy warning flags that get hard-coded by lower versions of CMake
 	if (MSVC)
 		string(REGEX REPLACE "/W[0-4]" "" CMAKE_C_FLAGS ${CMAKE_C_FLAGS})
