@@ -106,7 +106,7 @@ Generates a set of tests whose job is to include a single file.
 function (generate_inclusion_test)
 	set(options INCLUDE_DETAIL)
 	set(oneValueArgs BASE_DIRECTORY NAME)
-	set(multiValueArgs LINK_LIBRARIES ROOTS)
+	set(multiValueArgs REGEX_EXCLUSIONS LINK_LIBRARIES ROOTS)
 	cmake_parse_arguments(PARSE_ARGV 0 arg
 		"${options}" "${oneValueArgs}" "${multiValueArgs}"
 	)
@@ -128,6 +128,10 @@ function (generate_inclusion_test)
 			list(FILTER root_inclusion_test_c_files EXCLUDE REGEX "/detail/")
 			list(FILTER root_inclusion_test_c++_files EXCLUDE REGEX "/detail/")
 		endif()
+		foreach(exclusion ${arg_REGEX_EXCLUSIONS})
+			list(FILTER root_inclusion_test_c_files EXCLUDE REGEX ${exclusion})
+			list(FILTER root_inclusion_test_c++_files EXCLUDE REGEX ${exclusion})
+		endforeach()
 	
 		if (arg_BASE_DIRECTORY)
 			set(base_dir ${arg_BASE_DIRECTORY})
