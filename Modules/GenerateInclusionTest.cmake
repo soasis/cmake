@@ -38,7 +38,7 @@ set(ztd_cmake_inclusion_test_config_file [==[
 // Contact: opensource@soasis.org
 //
 // Commercial License Usage
-// Licensees holding valid commercial ztd.thread licenses may use this file in
+// Licensees holding valid commercial ztd.cmake licenses may use this file in
 // accordance with the commercial license agreement provided with the
 // Software or, alternatively, in accordance with the terms contained in
 // a written agreement between you and Shepherd's Oasis, LLC.
@@ -73,7 +73,7 @@ set(ztd_cmake_inclusion_test_main_file [==[
 // Contact: opensource@soasis.org
 //
 // Commercial License Usage
-// Licensees holding valid commercial ztd.thread licenses may use this file in
+// Licensees holding valid commercial ztd.cmake licenses may use this file in
 // accordance with the commercial license agreement provided with the
 // Software or, alternatively, in accordance with the terms contained in
 // a written agreement between you and Shepherd's Oasis, LLC.
@@ -180,5 +180,5 @@ function (generate_inclusion_test)
 		PRIVATE
 		${arg_LINK_LIBRARIES}
 	)
-	add_test(NAME ztd.thread.tests.inclusion COMMAND ztd.thread.tests.inclusion)
+	add_test(NAME ${arg_NAME} COMMAND ${arg_NAME})
 endfunction()
