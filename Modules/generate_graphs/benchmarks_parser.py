@@ -33,7 +33,12 @@ import visualize
 import json, io, sys
 from typing import List, Dict, Optional, Any, TypedDict
 
-Heuristics = TypedDict("Heuristics", {"max": float, "min": float}, total=False)
+Heuristics = TypedDict("Heuristics", {
+    "max": float,
+    "min": float,
+    "nonzero_min": float
+},
+                       total=False)
 ParsedBenchmark = TypedDict(
     "ParsedBenchmark", {
         "category": visualize.category_info,
@@ -165,6 +170,7 @@ def parse_benchmark(
 	heuristics: visualize.stats = visualize.stats([])
 	heuristics.max = b["heuristics"]["max"]
 	heuristics.min = b["heuristics"]["min"]
+	heuristics.nonzero_min = b["heuristics"]["nonzero_min"]
 	for run_label in run_labels:
 		for _, data_label in run_label.labels.items():
 			heuristics.mean = max(data_label.stats.mean, heuristics.mean)
@@ -277,6 +283,7 @@ def parse_benchmarks_json_into(j: Any, info: visualize.analysis_info,
 			    "heuristics": {
 			        "max": sys.float_info.min,
 			        "min": sys.float_info.max,
+			        "nonzero_min": sys.float_info.max,
 			    }
 			})
 			potential_targets = [all_benchmarks[-1]]
@@ -328,8 +335,14 @@ def parse_benchmarks_json_into(j: Any, info: visualize.analysis_info,
 				point = j_benchmark[point_id]
 				point_adjusted = point * to_seconds_multiplier
 				point_list.append(point_adjusted)
-				heuristics["min"] = min(heuristics["min"], point_adjusted)
-				heuristics["max"] = max(heuristics["max"], point_adjusted)
+				if not visualize.is_noop_category(run_name):
+					heuristics["min"] = min(heuristics["min"],
+					                        point_adjusted)
+					heuristics["max"] = max(heuristics["max"],
+					                        point_adjusted)
+				if abs(point_adjusted) >= sys.float_info.epsilon:
+					heuristics["nonzero_min"] = min(
+					    heuristics["nonzero_min"], point_adjusted)
 		elif j_benchmark_run_type == "aggregate":
 			# is a statistic or aggregate of some sort
 			j_benchmark_aggregate_name: str = j_benchmark["aggregate_name"]

@@ -38,6 +38,7 @@ import matplotlib.colors, matplotlib.patches
 import matplotlib.container, matplotlib.collections
 import numpy, math
 import random, bisect
+import sys
 
 from typing import List, Tuple, Union, Optional
 
@@ -70,11 +71,21 @@ def draw_graph(benchmark: visualize.benchmark) -> Tuple[str, any, any, str]:
 	# and to perform heuristic sizing
 	benchmark_max: float = benchmark.heuristics.max
 	benchmark_min: float = benchmark.heuristics.min
+	benchmark_nonzero_min: float = benchmark.heuristics.nonzero_min
 	benchmark_highest_mean: float = benchmark.heuristics.mean
 	benchmark_highest_stddev: float = benchmark.heuristics.stddev
 	absolute_range: float = benchmark_max - benchmark_min
+	benchmark_absolute_magnitude = benchmark_max / benchmark_nonzero_min
 	lower_is_better: bool = (
 	    benchmark.category.order == visualize.category_order.ascending)
+	benchmark_axis_scale = visualize.axis_scaling.linear
+	if benchmark.category.scale.axis_scale == visualize.axis_scaling.logarithmic:
+		benchmark_axis_scale = visualize.axis_scaling.logarithmic
+	elif benchmark.category.scale.axis_scale == visualize.axis_scaling.automatic:
+		if math.log10(benchmark_absolute_magnitude) > 3:
+			benchmark_axis_scale = visualize.axis_scaling.logarithmic
+		else:
+			benchmark_axis_scale = visualize.axis_scaling.linear
 
 	# The highest we should go for the graph's x-axis, and the
 	# number of subdivisions for tick markers for x-axis
@@ -187,14 +198,25 @@ def draw_graph(benchmark: visualize.benchmark) -> Tuple[str, any, any, str]:
 		else:
 			primary_label = group.labels[group.primary_label]
 			primary_label_info = primary_label.info
-			# Get the scaling we are going to sue for this benchmark
-			primary_xscale_bisect_index = bisect.bisect_left(
-			    primary_label_info.format_list,
-			    benchmark_max,
-			    key=from_unit_scale_comparison)
-			primary_xscale_index = max(primary_xscale_bisect_index - 1, 0)
-			primary_xscale = primary_label_info.format_list[
-			    primary_xscale_index]
+			# Get the scaling we are going to use for this benchmark
+			if benchmark_axis_scale == visualize.axis_scaling.logarithmic:
+				primary_xscale_bisect_index = bisect.bisect_left(
+				    primary_label_info.format_list,
+				    benchmark_min,
+				    key=from_unit_scale_comparison)
+				primary_xscale_index = max(primary_xscale_bisect_index - 2,
+				                           0)
+				primary_xscale = primary_label_info.format_list[
+				    primary_xscale_index]
+			else:
+				primary_xscale_bisect_index = bisect.bisect_left(
+				    primary_label_info.format_list,
+				    benchmark_max,
+				    key=from_unit_scale_comparison)
+				primary_xscale_index = max(primary_xscale_bisect_index - 2,
+				                           0)
+				primary_xscale = primary_label_info.format_list[
+				    primary_xscale_index]
 			statistics: visualize.stats = primary_label.stats
 			description += "Measures to a mean of \"{}\" {}, from {} multi-iteration samples.".format(
 			    statistics.mean * primary_xscale.to_unit_scale,
@@ -307,17 +329,44 @@ def draw_graph(benchmark: visualize.benchmark) -> Tuple[str, any, any, str]:
 			    alpha=scatter_alpha)
 			scatters.append(scatter)
 
+	def logtime_axis_formatting(value: float, _: int):
+		if value == 0:
+			return '0'
+		return '{0:.2e}'.format(value * primary_xscale.to_unit_scale)
+
 	def time_axis_formatting(value: float, _: int):
 		if value == 0:
 			return '0'
 		if value.is_integer():
 			return '{0:.0f}'.format(value * primary_xscale.to_unit_scale)
-		return '{0:.1f}'.format(value * primary_xscale.to_unit_scale)
+		return '{0:.2f}'.format(value * primary_xscale.to_unit_scale)
 
-	axes.set_xlim(left=0, right=xlimit)
-	axes.set_xticks(numpy.arange(0, xlimit, xlimit / xlimit_subdivisions))
-	axes.xaxis.set_major_formatter(
-	    matplotlib.ticker.FuncFormatter(time_axis_formatting))
+	if benchmark_axis_scale == visualize.axis_scaling.logarithmic:
+		#log_xmin = math.log10(sys.float_info.epsilon) - 1.0
+		#log_xmin = math.copysign(
+		#    math.ceil(abs(log_xmin)) if log_xmin < 0.0 else math.floor(
+		#        abs(log_xmin)), log_xmin)
+		#log_xlimit = math.log10(xlimit)
+		#log_xlimit = math.copysign(
+		#    math.floor(abs(log_xlimit)) if log_xlimit < 0.0 else math.ceil(
+		#        abs(log_xlimit)), log_xlimit)
+		#log_xlimit_subdivisions = log_xlimit - log_xmin
+		#log_space = numpy.logspace(log_xmin,
+		#                           log_xlimit,
+		#                           num=int(xlimit_subdivisions / 2),
+		#                           endpoint=True,
+		#                           base=10)
+		axes.set_xscale("log")
+		#axes.set_xlim(left=log_space[0], right=log_space[-1])
+		#axes.set_xticks(log_space)
+		axes.xaxis.set_major_formatter(
+		    matplotlib.ticker.FuncFormatter(logtime_axis_formatting))
+	else:
+		axes.set_xlim(left=0, right=xlimit)
+		axes.set_xticks(numpy.arange(0, xlimit,
+		                             xlimit / xlimit_subdivisions))
+		axes.xaxis.set_major_formatter(
+		    matplotlib.ticker.FuncFormatter(time_axis_formatting))
 
 	# have ticks drawn from base of bar graph
 	# to text labels
@@ -346,8 +395,9 @@ def draw_graph(benchmark: visualize.benchmark) -> Tuple[str, any, any, str]:
 	    ordinal(label_index + 1) + " is " + label_info.name for label_index,
 	    label_info in enumerate(benchmark.analysis_info.data_labels[::-1])
 	]
-	axes.set_xlabel('measured in ' + primary_xscale.name + ' - ' +
-	                is_better_text)
+	maybe_log_text = "log10 " if benchmark_axis_scale == visualize.axis_scaling.logarithmic else ""
+	axes.set_xlabel('measured in ' + maybe_log_text + primary_xscale.name +
+	                ' - ' + is_better_text)
 	axes.set_ylabel(',\n'.join(data_label_descriptions))
 
 	# create the benchmark name
@@ -377,6 +427,7 @@ def draw_graph(benchmark: visualize.benchmark) -> Tuple[str, any, any, str]:
 
 
 def draw_graphs(output_dir: str, benchmarks: List[visualize.benchmark]):
+	print("Drawing and saving graphs in '{}'", output_dir)
 	for benchmark in benchmarks:
 		benchmark_name, file_name, figures, axes, description = draw_graph(
 		    benchmark)
@@ -395,6 +446,7 @@ def draw_graphs(output_dir: str, benchmarks: List[visualize.benchmark]):
 		description_file = open(output_description_file, "wb")
 		description_file.write(description.encode('utf-8'))
 		description_file.close()
+	print("Done drawing and saving graphs in '{}'", output_dir)
 
 
 def main():

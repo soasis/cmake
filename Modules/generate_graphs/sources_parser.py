@@ -61,14 +61,24 @@ def parse_sources_from_json(
 		info.name = os.path.split(config_file_path)[1]
 	jdefault_scale = j.get("scale")
 	if jdefault_scale:
+		jdefaultaxis_scale: Optional[str] = jdefault_scale.get("axis_scale")
+		defaultaxis_scale = visualize.axis_scaling.automatic
+		if isinstance(jdefaultaxis_scale, str):
+			if jdefaultaxis_scale == "automatic":
+				defaultaxis_scale = visualize.axis_scaling.automatic
+			if jdefaultaxis_scale == "linear":
+				defaultaxis_scale = visualize.axis_scaling.automatic
+			if jdefaultaxis_scale == "logarithmic":
+				defaultaxis_scale = visualize.axis_scaling.automatic
+
 		jtype = jdefault_scale["type"]
 		if jtype == "relative":
 			jto = jdefault_scale["to"]
 			info.default_scale = visualize.scaling_info(
-			    visualize.graph_scaling.relative, jto)
+			    visualize.graph_scaling.relative, defaultaxis_scale, jto)
 		else:
 			info.default_scale = visualize.scaling_info(
-			    visualize.graph_scaling.absolute, "")
+			    visualize.graph_scaling.absolute, defaultaxis_scale, "")
 	jcategories = j.get("categories")
 	if jcategories:
 		for jcategory in jcategories:
@@ -76,6 +86,9 @@ def parse_sources_from_json(
 			jfilename: Optional[str] = jcategory.get("file_name")
 			jcatscale = jcategory.get("scale")
 			jcatpattern: Optional[str] = jcategory.get("pattern")
+			jcatexact_pattern: Optional[str] = jcategory.get(
+			    "exact_pattern")
+			jcatexclude: Optional[str] = jcategory.get("exclude")
 			jcatexclude: Optional[str] = jcategory.get("exclude")
 			jascending = jcategory.get("ascending")
 			jdescending = jcategory.get("descending")
@@ -88,17 +101,31 @@ def parse_sources_from_json(
 				order = visualize.category_order.descending
 			if jcatscale is not None:
 				jcatscaletype = jcatscale.get("type")
+				jcataxis_scale = jcatscale.get("axis_scale")
+				cataxis_scale = info.default_scale.axis_scale
+				if isinstance(jcataxis_scale, str):
+					if jcataxis_scale == "automatic" or jcataxis_scale == "auto":
+						cataxis_scale = visualize.axis_scaling.automatic
+					if jcataxis_scale == "linear":
+						cataxis_scale = visualize.axis_scaling.linear
+					if jcataxis_scale == "logarithmic" or jcataxis_scale == "log":
+						cataxis_scale = visualize.axis_scaling.logarithmic
 				if jtype == "relative":
 					jcatscaletypeto: str = jcatscaletype.get("to")
 					scale = visualize.scaling_info(
-					    visualize.graph_scaling.relative, jcatscaletypeto)
+					    visualize.graph_scaling.relative, cataxis_scale,
+					    jcatscaletypeto)
 				else:
 					scale = visualize.scaling_info(
-					    visualize.graph_scaling.absolute, "")
+					    visualize.graph_scaling.absolute, cataxis_scale,
+					    "")
 			else:
 				scale = info.default_scale
+			catpattern = "^" + jcatexact_pattern + "$" if isinstance(
+			    jcatexact_pattern,
+			    str) and len(jcatexact_pattern) > 0 else jcatpattern
 			cat_info: visualize.category_info = visualize.category_info(
-			    name, scale, order, jcatpattern, jcatexclude, jdescription,
+			    name, scale, order, catpattern, jcatexclude, jdescription,
 			    jfilename)
 			info.categories.append(cat_info)
 
@@ -131,11 +158,15 @@ def parse_sources_from_json(
 		for jdata_group in jdata_groups:
 			jname = jdata_group["name"]
 			jpattern = jdata_group.get("pattern")
+			jexact_pattern = jdata_group.get("exact_pattern")
 			jdescription = jdata_group.get("description")
 			jalways_included = jdata_group.get("always_included")
 			always_included: bool = False
 			if isinstance(jalways_included, bool) and jalways_included:
 				always_included = True
+			catpattern = "^" + jexact_pattern + "$" if isinstance(
+			    jexact_pattern,
+			    str) and len(jexact_pattern) > 0 else jpattern
 			dgi: visualize.data_group_info = visualize.data_group_info(
 			    jname, order_index, jpattern, jdescription, always_included)
 			order_index = order_index + 1
@@ -170,7 +201,7 @@ def parse_sources_from_json(
 
 	if needs_noop:
 		noop_data_group: visualize.data_group_info = visualize.data_group_info(
-		    "noop", order_index, "[Nn][Oo]([\.| |-|_])?[Oo][Pp]",
+		    "noop", order_index, "[Nn][Oo]([\\.| |-|_])?[Oo][Pp]",
 		    "Measures doing literally nothing (no written expressions/statements in the benchmarking loop). Can be useful for determining potential environment noise.",
 		    True)
 		info.data_groups.append(noop_data_group)

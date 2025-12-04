@@ -28,7 +28,7 @@
 #
 # ============================================================================>
 
-import enum, statistics, re
+import enum, statistics, re, sys
 from typing import List, Dict, Optional
 
 
@@ -36,6 +36,12 @@ def is_noop_category(n: str):
 	noop_names = ["noop", "no-op", "no_op", "no op"]
 	s = n.casefold()
 	return s in noop_names
+
+
+class axis_scaling(enum.Enum):
+	automatic = 0
+	linear = 1
+	logarithmic = 2
 
 
 class graph_scaling(enum.Enum):
@@ -55,9 +61,13 @@ class data_label_format(enum.Enum):
 
 class scaling_info():
 
-	def __init__(self, scaling: graph_scaling, to: str = "") -> None:
-		self.type = scaling
+	def __init__(self,
+	             graph_scale: graph_scaling,
+	             axis_scale: axis_scaling,
+	             to: str = "") -> None:
+		self.type = graph_scale
 		self.to = to
+		self.axis_scale = axis_scale
 
 
 class category_info():
@@ -84,8 +94,9 @@ class category_info():
 
 
 always_included_category = category_info(
-    "ztd.tools.always_included", scaling_info(graph_scaling.relative),
-    category_order.ascending, "", "",
+    "ztd.tools.always_included",
+    scaling_info(graph_scaling.relative, axis_scaling.automatic,
+                 ""), category_order.ascending, "", "",
     "A universal catch-all category for data groups and names that are always included in all other categories."
 )
 
@@ -106,7 +117,6 @@ class data_label_info():
 	    data_scale("ps", "picoseconds", 1e-12, 1e+12),
 	    data_scale("ns", "nanoseconds", 1e-9, 1e+9),
 	    data_scale("µs", "microseconds", .000001, 1000000),
-	    data_scale("us", "microseconds", .000001, 1000000),
 	    data_scale("ms", "milliseconds", .001, 100),
 	    data_scale("s", "seconds", 1, 1),
 	    data_scale("m", "minutes", 60, 1 / 60),
@@ -158,6 +168,7 @@ class stats():
 		self.data_point_count = len(data)
 		if self.data_point_count < 1:
 			self.min = 0.0
+			self.nonzero_min = sys.float_info.epsilon
 			self.max = 0.0
 			self.stddev = 0.0
 			self.mean = 0.0
@@ -167,6 +178,9 @@ class stats():
 		else:
 			self.min = min(data)
 			self.max = max(data)
+			self.nonzero_min = min(data,
+			                       key=lambda v: sys.float_info.max
+			                       if v == 0.0 else v)
 			if self.data_point_count == 1:
 				self.mean = data[0]
 				self.stddev = 0
