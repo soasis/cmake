@@ -335,11 +335,8 @@ def parse_benchmarks_json_into(j: Any, info: visualize.analysis_info,
 				point = j_benchmark[point_id]
 				point_adjusted = point * to_seconds_multiplier
 				point_list.append(point_adjusted)
-				if not visualize.is_noop_category(run_name):
-					heuristics["min"] = min(heuristics["min"],
-					                        point_adjusted)
-					heuristics["max"] = max(heuristics["max"],
-					                        point_adjusted)
+				heuristics["min"] = min(heuristics["min"], point_adjusted)
+				heuristics["max"] = max(heuristics["max"], point_adjusted)
 				if abs(point_adjusted) >= sys.float_info.epsilon:
 					heuristics["nonzero_min"] = min(
 					    heuristics["nonzero_min"], point_adjusted)

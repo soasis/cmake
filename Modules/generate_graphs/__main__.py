@@ -89,10 +89,12 @@ def draw_graph(benchmark: visualize.benchmark) -> Tuple[str, any, any, str]:
 
 	# The highest we should go for the graph's x-axis, and the
 	# number of subdivisions for tick markers for x-axis
-	xlimit: float = benchmark_highest_mean + (benchmark_highest_stddev *
-	                                          5.50) + (absolute_range * 0.01)
-	xlimit_subdivisions: float = 10.0
-
+	xlimit: float = (benchmark_highest_mean * 1.02) + (absolute_range * 0.01)
+	xlimit_subdivisions: float = 10
+	xlimit_log = math.log(xlimit, xlimit_subdivisions)
+	xlimit_log = math.floor(xlimit_log) - 1 if xlimit_log < 0 else math.ceil(
+	    xlimit_log) + 1
+	xlimit = round(xlimit + (0.5 * math.pow(10, xlimit_log)), -xlimit_log)
 	# some pattern constants, to help us be pretty
 	# some color constants, to help us be pretty!
 	# and differentiate graphs
@@ -342,27 +344,12 @@ def draw_graph(benchmark: visualize.benchmark) -> Tuple[str, any, any, str]:
 		return '{0:.2f}'.format(value * primary_xscale.to_unit_scale)
 
 	if benchmark_axis_scale == visualize.axis_scaling.logarithmic:
-		#log_xmin = math.log10(sys.float_info.epsilon) - 1.0
-		#log_xmin = math.copysign(
-		#    math.ceil(abs(log_xmin)) if log_xmin < 0.0 else math.floor(
-		#        abs(log_xmin)), log_xmin)
-		#log_xlimit = math.log10(xlimit)
-		#log_xlimit = math.copysign(
-		#    math.floor(abs(log_xlimit)) if log_xlimit < 0.0 else math.ceil(
-		#        abs(log_xlimit)), log_xlimit)
-		#log_xlimit_subdivisions = log_xlimit - log_xmin
-		#log_space = numpy.logspace(log_xmin,
-		#                           log_xlimit,
-		#                           num=int(xlimit_subdivisions / 2),
-		#                           endpoint=True,
-		#                           base=10)
 		axes.set_xscale("log")
-		#axes.set_xlim(left=log_space[0], right=log_space[-1])
-		#axes.set_xticks(log_space)
+		axes.grid(which="minor", color="0.9")
 		axes.xaxis.set_major_formatter(
 		    matplotlib.ticker.FuncFormatter(logtime_axis_formatting))
 	else:
-		axes.set_xlim(left=0, right=xlimit)
+		#axes.set_xlim(left=0, right=xlimit)
 		axes.set_xticks(numpy.arange(0, xlimit,
 		                             xlimit / xlimit_subdivisions))
 		axes.xaxis.set_major_formatter(

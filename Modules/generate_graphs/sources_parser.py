@@ -64,12 +64,12 @@ def parse_sources_from_json(
 		jdefaultaxis_scale: Optional[str] = jdefault_scale.get("axis_scale")
 		defaultaxis_scale = visualize.axis_scaling.automatic
 		if isinstance(jdefaultaxis_scale, str):
-			if jdefaultaxis_scale == "automatic":
+			if jdefaultaxis_scale == "automatic" or jdefaultaxis_scale == "auto":
 				defaultaxis_scale = visualize.axis_scaling.automatic
-			if jdefaultaxis_scale == "linear":
-				defaultaxis_scale = visualize.axis_scaling.automatic
-			if jdefaultaxis_scale == "logarithmic":
-				defaultaxis_scale = visualize.axis_scaling.automatic
+			elif jdefaultaxis_scale == "linear":
+				defaultaxis_scale = visualize.axis_scaling.linear
+			elif jdefaultaxis_scale == "logarithmic" or jdefaultaxis_scale == "log":
+				defaultaxis_scale = visualize.axis_scaling.logarithmic
 
 		jtype = jdefault_scale["type"]
 		if jtype == "relative":
@@ -83,12 +83,11 @@ def parse_sources_from_json(
 	if jcategories:
 		for jcategory in jcategories:
 			name = jcategory["name"]
-			jfilename: Optional[str] = jcategory.get("file_name")
+			jcatfile_name: Optional[str] = jcategory.get("file_name")
 			jcatscale = jcategory.get("scale")
 			jcatpattern: Optional[str] = jcategory.get("pattern")
 			jcatexact_pattern: Optional[str] = jcategory.get(
 			    "exact_pattern")
-			jcatexclude: Optional[str] = jcategory.get("exclude")
 			jcatexclude: Optional[str] = jcategory.get("exclude")
 			jascending = jcategory.get("ascending")
 			jdescending = jcategory.get("descending")
@@ -106,9 +105,9 @@ def parse_sources_from_json(
 				if isinstance(jcataxis_scale, str):
 					if jcataxis_scale == "automatic" or jcataxis_scale == "auto":
 						cataxis_scale = visualize.axis_scaling.automatic
-					if jcataxis_scale == "linear":
+					elif jcataxis_scale == "linear":
 						cataxis_scale = visualize.axis_scaling.linear
-					if jcataxis_scale == "logarithmic" or jcataxis_scale == "log":
+					elif jcataxis_scale == "logarithmic" or jcataxis_scale == "log":
 						cataxis_scale = visualize.axis_scaling.logarithmic
 				if jtype == "relative":
 					jcatscaletypeto: str = jcatscaletype.get("to")
@@ -126,7 +125,7 @@ def parse_sources_from_json(
 			    str) and len(jcatexact_pattern) > 0 else jcatpattern
 			cat_info: visualize.category_info = visualize.category_info(
 			    name, scale, order, catpattern, jcatexclude, jdescription,
-			    jfilename)
+			    jcatfile_name)
 			info.categories.append(cat_info)
 
 	jdata_labels = j.get("data_labels")
@@ -168,7 +167,8 @@ def parse_sources_from_json(
 			    jexact_pattern,
 			    str) and len(jexact_pattern) > 0 else jpattern
 			dgi: visualize.data_group_info = visualize.data_group_info(
-			    jname, order_index, jpattern, jdescription, always_included)
+			    jname, order_index, catpattern, jdescription,
+			    always_included)
 			order_index = order_index + 1
 			info.data_groups.append(dgi)
 
