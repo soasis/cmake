@@ -85,19 +85,25 @@ def parse_sources_from_json(
 			name = jcategory["name"]
 			jcatfile_name: Optional[str] = jcategory.get("file_name")
 			jcatscale = jcategory.get("scale")
+			jcatrecognized_datagroups_only = jcategory.get(
+			    "recognized_datagroups_only")
 			jcatpattern: Optional[str] = jcategory.get("pattern")
 			jcatexact_pattern: Optional[str] = jcategory.get(
 			    "exact_pattern")
-			jcatexclude: Optional[str] = jcategory.get("exclude")
+			jcatexcludes: Optional[list[str]] = jcategory.get("excludes")
 			jascending = jcategory.get("ascending")
 			jdescending = jcategory.get("descending")
 			jdescription = jcategory.get("description")
 			scale: Optional[visualize.scaling_info] = None
 			order: visualize.category_order = visualize.category_order.ascending
+			recognized_datagroups_only = True
 			if isinstance(jascending, bool) and jascending:
 				order = visualize.category_order.ascending
 			if isinstance(jdescending, bool) and jdescending:
 				order = visualize.category_order.descending
+			if isinstance(jcatrecognized_datagroups_only,
+			              bool) and not jcatrecognized_datagroups_only:
+				recognized_datagroups_only = False
 			if jcatscale is not None:
 				jcatscaletype = jcatscale.get("type")
 				jcataxis_scale = jcatscale.get("axis_scale")
@@ -124,8 +130,8 @@ def parse_sources_from_json(
 			    jcatexact_pattern,
 			    str) and len(jcatexact_pattern) > 0 else jcatpattern
 			cat_info: visualize.category_info = visualize.category_info(
-			    name, scale, order, catpattern, jcatexclude, jdescription,
-			    jcatfile_name)
+			    name, scale, order, recognized_datagroups_only, catpattern,
+			    jcatexcludes, jdescription, jcatfile_name)
 			info.categories.append(cat_info)
 
 	jdata_labels = j.get("data_labels")

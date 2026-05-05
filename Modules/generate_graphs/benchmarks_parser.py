@@ -39,6 +39,7 @@ Heuristics = TypedDict("Heuristics", {
     "nonzero_min": float
 },
                        total=False)
+
 ParsedBenchmark = TypedDict(
     "ParsedBenchmark", {
         "category": visualize.category_info,
@@ -79,13 +80,27 @@ def category_sorter(c: visualize.category_info):
 def match_category(c: visualize.category_info, name: str) -> bool:
 	s = c.pattern.search(name)
 	if s != None:
-		e = c.exclude_pattern.search(name)
-		if e != None:
-			return False
-		else:
-			return True
+		for exclude_pattern in c.exclude_patterns:
+			e = exclude_pattern.search(name)
+			if e != None:
+				return False
+			else:
+				return True
+		return True
 	else:
 		return False
+
+
+def match_category_with_datagroups(c: visualize.category_info,
+                                   a: visualize.analysis_info,
+                                   name: str) -> bool:
+	if c.recognized_datagroups_only:
+		for dgi in a.data_groups:
+			if dgi.pattern.search(name) != None:
+				return True
+		return False
+	else:
+		return match_category(c, name)
 
 
 def match_target(b: ParsedBenchmark, name: str) -> bool:
@@ -134,7 +149,7 @@ def parse_benchmark(
 		group_info = potential_group_infos[0] if len(
 		    potential_group_infos) > 0 else None
 		# if this group is unmatched, and this option is on from the config,
-		# then we do not want to see it at all; ignore this rung
+		# then we do not want to see it at all; ignore this run
 		if analysis.discard_unmatched_runs and group_info == None:
 			continue
 
@@ -239,8 +254,10 @@ def parse_benchmarks_json_into(j: Any, info: visualize.analysis_info,
 	j_benchmarks_array = j["benchmarks"]
 	for j_benchmark in j_benchmarks_array:
 		run_name: str = j_benchmark['run_name']
+		potential_categories = []
 
 		for dgi in info.data_groups:
+			# checkif the name is a no-op style or always-included style name
 			group_name = trim_data_group_name(dgi.name, info, None)
 			if run_name in group_name and dgi.always_included:
 				# benchmarks belong in always_included category, to be used by all
@@ -248,17 +265,16 @@ def parse_benchmarks_json_into(j: Any, info: visualize.analysis_info,
 				break
 		else:
 			potential_categories = [
-			    c for c in info.categories if match_category(c, run_name)
+			    c for c in info.categories
+			    if match_category_with_datagroups(c, info, run_name)
 			]
 
-		if len(potential_categories) < 1:
-			raise Exception(
-			    "could not find any category to match the given benchmark run ({}) from the config"
-			    .format(run_name))
-		elif len(potential_categories) > 1:
+		if len(potential_categories) > 1:
 			raise Exception(
 			    "more than one category matched the given benchmark run ({}) from the config"
 			    .format(run_name))
+		elif len(potential_categories) < 1:
+			continue
 
 		potential_categories.sort(key=category_sorter)
 		category: visualize.category_info = potential_categories[0]

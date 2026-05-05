@@ -89,12 +89,15 @@ def draw_graph(benchmark: visualize.benchmark) -> Tuple[str, any, any, str]:
 
 	# The highest we should go for the graph's x-axis, and the
 	# number of subdivisions for tick markers for x-axis
-	xlimit: float = (benchmark_highest_mean * 1.02) + (absolute_range * 0.01)
+	xlimit: float = (absolute_range * 1.005)
 	xlimit_subdivisions: float = 10
-	xlimit_log = math.log(xlimit, xlimit_subdivisions)
-	xlimit_log = math.floor(xlimit_log) - 1 if xlimit_log < 0 else math.ceil(
-	    xlimit_log) + 1
-	xlimit = round(xlimit + (0.5 * math.pow(10, xlimit_log)), -xlimit_log)
+	if benchmark_axis_scale == visualize.axis_scaling.logarithmic:
+		xlimit = (benchmark_highest_mean * 1.02) + (absolute_range * 0.01)
+		xlimit_log = math.log(xlimit, xlimit_subdivisions)
+		xlimit_log = math.floor(
+		    xlimit_log) - 1 if xlimit_log < 0 else math.ceil(xlimit_log) + 1
+		xlimit = round(xlimit + (0.5 * math.pow(10, xlimit_log)),
+		               -xlimit_log)
 	# some pattern constants, to help us be pretty
 	# some color constants, to help us be pretty!
 	# and differentiate graphs
@@ -175,7 +178,9 @@ def draw_graph(benchmark: visualize.benchmark) -> Tuple[str, any, any, str]:
 		ordinal_group_index = (len(benchmark.groups) - group_index -
 		                       1) if lower_is_better else group_index
 		description += "\n- {} is {}. ".format(
-		    group.name, ordinal(ordinal_group_index + 1))
+		    group.info.name
+		    if group.info and len(group.info.name) > 0 else group.name,
+		    ordinal(ordinal_group_index + 1))
 		if group.info and group.info.description and len(
 		    group.info.description) > 1:
 			description += "Described as: \""

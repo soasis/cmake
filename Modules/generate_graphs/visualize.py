@@ -76,17 +76,22 @@ class category_info():
 	             name: str,
 	             scale: scaling_info,
 	             order: category_order,
+	             recognized_datagroups_only: bool,
 	             pattern: Optional[str] = None,
-	             exclude_pattern: Optional[str] = None,
+	             exclude_patterns: Optional[list[str]] = None,
 	             description: Optional[str] = None,
 	             file_name: Optional[str] = None) -> None:
 		self.name: str = name
-		self.pattern: re.Pattern[str] = re.compile(
-		    pattern) if pattern else re.compile(re.escape(name) + "_")
-		self.exclude_pattern = re.compile(
-		    exclude_pattern) if exclude_pattern else re.compile("x^")
 		self.scale: scaling_info = scale
 		self.order: category_order = order
+		self.recognized_datagroups_only = recognized_datagroups_only
+		self.pattern: re.Pattern[str] = re.compile(
+		    pattern) if pattern else re.compile(re.escape(name) + "_")
+		self.exclude_patterns: list[re.Pattern[str]] = [
+		    re.compile(exclude_pattern)
+		    for exclude_pattern in exclude_patterns
+		    if exclude_pattern
+		] if exclude_patterns else []
 		self.description: str = description if isinstance(description,
 		                                                  str) else ""
 		self.file_name: Optional[str] = file_name if isinstance(

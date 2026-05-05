@@ -42,7 +42,7 @@ function (ztd_tools_add_benchmark_grapher)
 	endif()
 
 	set(on_off_value ALL)
-	set(one_value NAME CONFIG REPETITIONS OUTPUT_DIR)
+	set(one_value NAME CONFIG REPETITIONS OUTPUT_DIR GROUP_NAME)
 	set(multi_value NAMES TARGETS CONFIGS OUTPUT_DIRS)
 	cmake_parse_arguments(PARSE_ARGV 0 ZTD_TOOLS_ARGS "${on_off_value}" "${one_value}" "${multi_value}")
 
@@ -149,7 +149,12 @@ function (ztd_tools_add_benchmark_grapher)
 			COMMENT "[ztd.tools] Graphing data to '${graph_output_dir}'"
 		)
 	endforeach()
-	add_custom_target(ztd.tools.benchmark_grapher.group${graph_names}
+	if (ZTD_TOOLS_ARGS_GROUP_NAME)
+		set(group_name group.${ZTD_TOOLS_ARGS_GROUP_NAME})
+	else()
+		set(group_name group${graph_names})
+	endif()
+	add_custom_target(ztd.tools.benchmark_grapher.${group_name}
 		DEPENDS ${graph_targets}
 	)
 endfunction()
